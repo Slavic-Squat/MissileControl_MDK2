@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.35004.147
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MissileControl(MDK2)", "MissileControl(MDK2)\MissileControl(MDK2).csproj", "{08F1E247-A087-46D9-80AA-B787BC19C418}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{08F1E247-A087-46D9-80AA-B787BC19C418}.Debug|x64.ActiveCfg = Debug|x64
+		{08F1E247-A087-46D9-80AA-B787BC19C418}.Debug|x64.Build.0 = Debug|x64
+		{08F1E247-A087-46D9-80AA-B787BC19C418}.Release|x64.ActiveCfg = Release|x64
+		{08F1E247-A087-46D9-80AA-B787BC19C418}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {AC66EC41-9745-42B1-BAD9-B4173E795436}
+	EndGlobalSection
+EndGlobal
