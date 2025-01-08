@@ -25,7 +25,10 @@ namespace IngameScript
         public class MissileControl
         {
             private Program program;
+            private DateTime time;
             private int ID;
+            private string IDString;
+            private bool active;
             private bool clusterMissile;
 
             private MissileGuidance missileGuidance;
@@ -39,8 +42,6 @@ namespace IngameScript
             {
                 Idle, Launching, Flying, Interception
             }
-
-            private IMyBroadcastListener myBroadcastListener;
 
             private List<IMyGyro> gyros = new List<IMyGyro>();
             private IMyRemoteControl remoteControl;
@@ -61,12 +62,22 @@ namespace IngameScript
             private float maxForwardAccel;
             private float maxRadialAccel;
 
+            private IMyBroadcastListener targetsInfoListener;
+            private IMyBroadcastListener launcherInfoListener;
+            private ImmutableDictionary<long, MyTuple<Vector3, Vector3, long>> targetsInfo;
+            private MyTuple<string, Vector3, Vector3, long> launcherInfo;
+
             private Vector3 missilePosition;
             private Vector3 missileVelocity;
 
+            private long selectedTargetID;
             private Vector3 targetPosition;
             private Vector3 targetVelocity;
+            private DateTime targetInfoTime;
+
             private Vector3 launcherPosition;
+            private Vector3 launcherVelocity;
+            private DateTime launcherInfoTime;
 
             private Vector3 relativeTargetPosition;
             private Vector3 closingVelocity;
@@ -90,17 +101,27 @@ namespace IngameScript
                 this.ID = ID;
                 this.clusterMissile = clusterMissile;
 
-                program.GridTerminalSystem.GetBlockGroupWithName($"Missile Thrusters {ID}").GetBlocksOfType<IMyThrust>(thrusters);
-                program.GridTerminalSystem.GetBlockGroupWithName($"Missile Gyros {ID}").GetBlocksOfType<IMyGyro>(gyros);
-                remoteControl = (IMyRemoteControl)program.GridTerminalSystem.GetBlockWithName($"Missile Controller {ID}");
-                mergeBlock = (IMyShipMergeBlock)program.GridTerminalSystem.GetBlockWithName($"Missile Merge Block {ID}");
-                program.GridTerminalSystem.GetBlockGroupWithName($"Payload {ID}").GetBlocksOfType(payload);
+                program.GridTerminalSystem.GetBlockGroupWithName($"Missile Thrusters [{ID}]").GetBlocksOfType<IMyThrust>(thrusters);
+                program.GridTerminalSystem.GetBlockGroupWithName($"Missile Gyros [{ID}]").GetBlocksOfType<IMyGyro>(gyros);
+                remoteControl = (IMyRemoteControl)program.GridTerminalSystem.GetBlockWithName($"Missile Controller [{ID}]");
+                mergeBlock = (IMyShipMergeBlock)program.GridTerminalSystem.GetBlockWithName($"Missile Merge Block [{ID}]");
+                program.GridTerminalSystem.GetBlockGroupWithName($"Payload [{ID}]").GetBlocksOfType(payload);
 
                 if (clusterMissile == true)
                 {
-                    program.GridTerminalSystem.GetBlockGroupWithName($"Attachment Rotors {ID}").GetBlocksOfType(attachmentRotors);
+                    program.GridTerminalSystem.GetBlockGroupWithName($"Attachment Rotors [{ID}]").GetBlocksOfType(attachmentRotors);
                 }
 
+                Init();
+
+                pitchController = new PIDControl(1.0f, 0, 0.2f);
+                yawController = new PIDControl(1.0f, 0, 0.2f);
+
+                missileGuidance = new MissileGuidance(maxForwardAccel, maxRadialAccel, 3.5f, 10);
+            }
+
+            public void Init()
+            {
                 foreach (IMyThrust thruster in thrusters)
                 {
                     Vector3D localThrusterDirection = Vector3.Round(Vector3.TransformNormal(thruster.WorldMatrix.Backward, Matrix.Transpose(remoteControl.WorldMatrix)), 1);
@@ -140,16 +161,11 @@ namespace IngameScript
                 missileMass = remoteControl.CalculateShipMass().PhysicalMass;
                 maxForwardAccel = maxForwardThrust / missileMass;
                 maxRadialAccel = maxRightwardThrust / missileMass;
-
-                pitchController = new PIDControl(1.0f, 0, 0.2f);
-                yawController = new PIDControl(1.0f, 0, 0.2f);
-
-                missileGuidance = new MissileGuidance(maxForwardAccel, maxRadialAccel, 3.5f, 10);
             }
 
-            public void Run()
+            public void Run(DateTime time)
             {
-                if (myBroadcastListener != null)
+                if (active)
                 {
                     float timeDelta = (float)program.Runtime.TimeSinceLastRun.TotalSeconds;
 
@@ -157,17 +173,46 @@ namespace IngameScript
                     missilePosition = remoteControl.CubeGrid.GetPosition();
                     missileVelocity = remoteControl.GetShipVelocities().LinearVelocity;
 
-                    if (myBroadcastListener.HasPendingMessage)
+                    var messageOut = new MyTuple<Vector3, Vector3>(missilePosition, missileVelocity);
+                    program.IGC.SendBroadcastMessage($"[{ID}]_MissileInfo", messageOut);
+
+                    while (targetsInfoListener.HasPendingMessage)
                     {
-                        MyIGCMessage message = myBroadcastListener.AcceptMessage();
-                        MyTuple<Vector3, Vector3, Matrix> laserTargetInfo = message.As<MyTuple<Vector3, Vector3, Matrix>>();
+                        var messageIn = targetsInfoListener.AcceptMessage();
+                        if (messageIn.Data is ImmutableDictionary<long, MyTuple<Vector3, Vector3, long>>)
+                        {
+                            targetsInfo = messageIn.As<ImmutableDictionary<long, MyTuple<Vector3, Vector3, long>>>();
 
-                        targetPosition = laserTargetInfo.Item1;
-                        targetVelocity = laserTargetInfo.Item2;
-
-                        launcherPosition = laserTargetInfo.Item3.Translation;
+                            targetPosition = targetsInfo[selectedTargetID].Item1;
+                            targetVelocity = targetsInfo[selectedTargetID].Item2;
+                            targetInfoTime = new DateTime(targetsInfo[selectedTargetID].Item3);
+                        }
                     }
-                    relativeTargetPosition = targetPosition - missilePosition;
+                    while (launcherInfoListener.HasPendingMessage)
+                    {
+                        var messageIn = launcherInfoListener.AcceptMessage();
+                        if (messageIn.Data is MyTuple<string, Vector3, Vector3, long>)
+                        {
+                            launcherInfo = messageIn.As<MyTuple<string, Vector3, Vector3, long>>();
+
+                            launcherPosition = launcherInfo.Item2;
+                            launcherVelocity = launcherInfo.Item3;
+                            launcherInfoTime = new DateTime(launcherInfo.Item4);
+                        }
+                    }
+                    Vector3 estimatedTargetPos = targetPosition;
+                    Vector3 estimatedLauncherPos = launcherPosition;
+                    if (targetInfoTime < time)
+                    {
+                        float secSinceLastUpdate = (float)(time - targetInfoTime).TotalSeconds;
+                        estimatedTargetPos = targetPosition + targetVelocity * secSinceLastUpdate;
+                    }
+                    if (launcherInfoTime < time)
+                    {
+                        float secSinceLastUpdate = (float)(time - launcherInfoTime).TotalSeconds;
+                        estimatedLauncherPos = launcherPosition + launcherVelocity * secSinceLastUpdate;
+                    }
+                    relativeTargetPosition = estimatedTargetPos - missilePosition;
                     distanceToTarget = relativeTargetPosition.Length();
                     closingVelocity = targetVelocity - missileVelocity;
                     closingSpeed = Vector3.Dot(Vector3.Normalize(relativeTargetPosition), Vector3.Normalize(closingVelocity)) * closingVelocity.Length();
@@ -188,7 +233,7 @@ namespace IngameScript
                             localVectorToAlign = -Vector3.UnitZ;
                             localTotalAcceleration = maxForwardAccel * localVectorToAlign;
 
-                            if ((missilePosition - launcherPosition).Length() > 100)
+                            if ((missilePosition - estimatedLauncherPos).Length() > 100)
                             {
                                 stage = Stage.Flying;
                             }
@@ -197,7 +242,7 @@ namespace IngameScript
 
                         case Stage.Flying:
 
-                            missileGuidance.Run(missileVelocity, missilePosition, targetVelocity, targetPosition);
+                            missileGuidance.Run(missileVelocity, missilePosition, targetVelocity, estimatedTargetPos);
                             localTotalAcceleration = Vector3.TransformNormal(missileGuidance.totalAcceleration, Matrix.Transpose(remoteControl.WorldMatrix));
                             localVectorToAlign = Vector3.TransformNormal(missileGuidance.vectorToAlign, Matrix.Transpose(remoteControl.WorldMatrix));
 
@@ -210,7 +255,7 @@ namespace IngameScript
 
                         case Stage.Interception:
 
-                            missileGuidance.Run(missileVelocity, missilePosition, targetVelocity, targetPosition);
+                            missileGuidance.Run(missileVelocity, missilePosition, targetVelocity, estimatedTargetPos);
                             localTotalAcceleration = Vector3.TransformNormal(missileGuidance.totalAcceleration, Matrix.Transpose(remoteControl.WorldMatrix));
                             localVectorToAlign = Vector3.TransformNormal(missileGuidance.vectorToAlign, Matrix.Transpose(remoteControl.WorldMatrix));
 
@@ -312,9 +357,17 @@ namespace IngameScript
                 }
             }
 
-            public void Launch(string broadcastTag)
+            public void InitMissile(string broadcastTag, string IDString)
             {
-                myBroadcastListener = program.IGC.RegisterBroadcastListener(broadcastTag);
+                targetsInfoListener = program.IGC.RegisterBroadcastListener($"[{broadcastTag}]_TargetInfo");
+                launcherInfoListener = program.IGC.RegisterBroadcastListener($"[{broadcastTag}]_LauncherInfo");
+                this.IDString = IDString;
+                active = true;
+            }
+
+            public void Launch(string targetIDString)
+            {
+                long.TryParse(targetIDString, out selectedTargetID);
 
                 stage = Stage.Launching;
 
@@ -322,6 +375,11 @@ namespace IngameScript
                 {
                     program.Runtime.UpdateFrequency = UpdateFrequency.Update1;
                 }
+            }
+
+            public void ResetMissile()
+            {
+
             }
         }
     }
