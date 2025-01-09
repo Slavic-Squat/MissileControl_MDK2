@@ -24,13 +24,15 @@ namespace IngameScript
     {
         MyIni config = new MyIni();
         bool updatesPending = false;
-        DateTime time;
-        bool listeningForClock = false;
-        string broadcastTag;
-        IMyBroadcastListener broadcastListener;
-        MissileControl missile;
-        Dictionary<string, Action<string[]>> commands = new Dictionary<string, Action<string[]>>();
         MyCommandLine commandLine = new MyCommandLine();
+        Dictionary<string, Action<string[]>> commands = new Dictionary<string, Action<string[]>>();
+
+        DateTime time;
+        IMyBroadcastListener broadcastListener;
+        string broadcastTag;
+        bool listeningForClock = false;
+
+        MissileControl missile;
 
         public Program()
         {
@@ -40,14 +42,14 @@ namespace IngameScript
             }
             missile = new MissileControl(this, 0, false);
 
-            commands["InitMissile"] = (x) =>
+            commands["InitMissile"] = (args) =>
             {
-                missile.InitMissile(x[0], x[1]);
-                SyncClock(x[2]);
+                missile.InitMissile(args[0], args[1]);
+                SyncClock(args[2]);
             };
-            commands["Launch"] = (x) => missile.Launch(x[0]);
-            commands["SyncClock"] = (x) => SyncClock(x[0]);
-            commands["RecieveClock"] = (x) => RecieveClock(x[0]);
+            commands["Launch"] = (args) => missile.Launch(args[0]);
+            commands["SyncClock"] = (args) => SyncClock(args[0]);
+            commands["RecieveClock"] = (args) => RecieveClock(args[0]);
         }
 
         public void Save()
