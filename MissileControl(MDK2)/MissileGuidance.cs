@@ -94,8 +94,7 @@ namespace IngameScript
                         proNavAcceleration = proNavAccelerationDirection * proNavAccelerationMagnitude;
                     }
 
-                    float forwardAccelCompensation = (float)Math.Sqrt((proNavAccelerationMagnitude * proNavAccelerationMagnitude) - (maxRadialAccel * maxRadialAccel));
-                    float freeForwardAccel = maxForwardAccel - forwardAccelCompensation;
+                    float freeForwardAccel = (float)Math.Sqrt((proNavAccelerationMagnitude * proNavAccelerationMagnitude) - (maxTotalAccel * maxTotalAccel));
                     accelerationAlongVelocityMagnitude = freeForwardAccel;
                     accelerationAlongVelocity = alignmentReference * accelerationAlongVelocityMagnitude;
 
@@ -106,9 +105,9 @@ namespace IngameScript
 
                     totalAcceleration = accelerationAlongVelocity + proNavAcceleration;
                     float totalAccelerationMagnitude = totalAcceleration.Length();
-                    float totalAccelerationAngle = (float)Math.Acos(proNavAccelerationMagnitude / totalAccelerationMagnitude);
-                    float adjustedTotalAccelerationAngle = (float)Math.Acos(maxRadialAccel / totalAccelerationMagnitude);
-                    float rotation = totalAccelerationAngle - adjustedTotalAccelerationAngle;
+                    float totalAccelerationTargetAngle = (float)Math.Acos(proNavAccelerationMagnitude / totalAccelerationMagnitude);
+                    float totalAccelerationAngle = (float)Math.Acos(maxRadialAccel / totalAccelerationMagnitude);
+                    float rotation = totalAccelerationTargetAngle - totalAccelerationAngle;
                     Vector3 axisOfRotation = Vector3.Cross(proNavAccelerationDirection, alignmentReference);
                     axisOfRotation.Normalize();
                     Quaternion alignmentCorrection = Quaternion.CreateFromAxisAngle(axisOfRotation, -rotation);
