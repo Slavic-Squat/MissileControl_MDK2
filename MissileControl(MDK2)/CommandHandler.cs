@@ -29,7 +29,7 @@ namespace IngameScript
             private MyCommandLine commandLine = new MyCommandLine();
             private Dictionary<string, Action<string[]>> commands = new Dictionary<string, Action<string[]>>();
 
-            IMyTerminalBlock storageBlock;
+            private IMyTerminalBlock storageBlock;
 
             public CommandHandler(IMyTerminalBlock storageBlock, Dictionary<string, Action<string[]>> commands)
             {

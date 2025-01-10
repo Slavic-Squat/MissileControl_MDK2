@@ -24,32 +24,38 @@ namespace IngameScript
     {
         public class MissileControl
         {
+            #region General Info
             private Program program;
-            private DateTime time;
             private int ID;
             private string IDString;
-            private bool active;
             private bool clusterMissile;
+            #endregion
 
-            private MissileGuidance missileGuidance;
+            #region Broadcast Info
+            private string broadcastTag;
+            private long selectedTargetID;
+            private IMyBroadcastListener targetsInfoListener;
+            private IMyBroadcastListener launcherInfoListener;
+            private ImmutableDictionary<long, MyTuple<Vector3, Vector3, long>> targetsInfo;
+            private MyTuple<string, Vector3, Vector3, long> launcherInfo;
+            #endregion
 
-            private enum Direction
-            {
-                Forward, Backward, Leftward, Rightward, Upward, Downward
-            }
-
-            public enum Stage
-            {
-                Idle, Launching, Flying, Interception
-            }
-
+            #region Parts
             private List<IMyGyro> gyros = new List<IMyGyro>();
             private IMyRemoteControl remoteControl;
             private IMyShipMergeBlock mergeBlock;
             private List<IMyWarhead> payload = new List<IMyWarhead>();
             private List<IMyMotorStator> attachmentRotors = new List<IMyMotorStator>();
-
             private List<IMyThrust> thrusters = new List<IMyThrust>();
+            #endregion
+
+            #region Controllers
+            private MissileGuidance missileGuidance;
+            private PIDControl pitchController;
+            private PIDControl yawController;
+            #endregion
+
+            #region Properties
             private float maxForwardThrust;
             private float maxBackwardThrust;
             private float maxLeftwardThrust;
@@ -62,15 +68,17 @@ namespace IngameScript
             private float maxForwardAccel;
             private float maxRadialAccel;
 
-            private IMyBroadcastListener targetsInfoListener;
-            private IMyBroadcastListener launcherInfoListener;
-            private ImmutableDictionary<long, MyTuple<Vector3, Vector3, long>> targetsInfo;
-            private MyTuple<string, Vector3, Vector3, long> launcherInfo;
+            private Dictionary<IMyThrust, MyTuple<Vector3, Direction>> thrusterInfo = new Dictionary<IMyThrust, MyTuple<Vector3, Direction>>();
+            #endregion
+
+            #region State Info
+            private DateTime time;
+            private bool active;
+            public Stage stage = Stage.Idle;
 
             private Vector3 missilePosition;
             private Vector3 missileVelocity;
 
-            private long selectedTargetID;
             private Vector3 targetPosition;
             private Vector3 targetVelocity;
             private DateTime targetInfoTime;
@@ -85,15 +93,19 @@ namespace IngameScript
             private float closingSpeed;
             private float timeToTarget;
 
-            public Stage stage = Stage.Idle;
-
-            private Dictionary<IMyThrust, MyTuple<Vector3, Direction>> thrusterInfo = new Dictionary<IMyThrust, MyTuple<Vector3, Direction>>();
-
             private Vector3 localTotalAcceleration;
             private Vector3 localVectorToAlign;
+            #endregion
 
-            private PIDControl pitchController;
-            private PIDControl yawController;
+            private enum Direction
+            {
+                Forward, Backward, Leftward, Rightward, Upward, Downward
+            }
+
+            public enum Stage
+            {
+                Idle, Launching, Flying, Interception
+            }
 
             public MissileControl(Program program, int ID, bool clusterMissile)
             {
@@ -173,8 +185,8 @@ namespace IngameScript
                     missilePosition = remoteControl.CubeGrid.GetPosition();
                     missileVelocity = remoteControl.GetShipVelocities().LinearVelocity;
 
-                    var messageOut = new MyTuple<Vector3, Vector3>(missilePosition, missileVelocity);
-                    program.IGC.SendBroadcastMessage($"[{ID}]_MissileInfo", messageOut);
+                    var messageOut = new MyTuple<string, Vector3, Vector3>(IDString, missilePosition, missileVelocity);
+                    program.IGC.SendBroadcastMessage($"[{broadcastTag}]_MissileInfo", messageOut);
 
                     while (targetsInfoListener.HasPendingMessage)
                     {
@@ -362,6 +374,7 @@ namespace IngameScript
                 targetsInfoListener = program.IGC.RegisterBroadcastListener($"[{broadcastTag}]_TargetInfo");
                 launcherInfoListener = program.IGC.RegisterBroadcastListener($"[{broadcastTag}]_LauncherInfo");
                 this.IDString = IDString;
+                this.broadcastTag = broadcastTag;
                 active = true;
             }
 

@@ -24,14 +24,19 @@ namespace IngameScript
     {
         public class MissileGuidance
         {
+            #region Properties
             private int maxSpeed;
             private float N;
             private float maxForwardAccel;
             private float maxRadialAccel;
-            private MovingAverage signalSmoother;
+            #endregion
 
+            #region Output
             public Vector3 vectorToAlign;
             public Vector3 totalAcceleration;
+            #endregion
+
+            private MovingAverage signalSmoother;
 
             public MissileGuidance(float maxForwardAccel, float maxRadialAccel, float N, int smoothing, int maxSpeed = 100)
             {
