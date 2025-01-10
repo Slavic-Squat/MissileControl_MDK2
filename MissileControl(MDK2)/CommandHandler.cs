@@ -22,7 +22,7 @@ namespace IngameScript
 {
     partial class Program
     {
-        public class ConfigCommandHelper
+        public class CommandHandler
         {
             private MyIni config = new MyIni();
             private bool updatesPending = false;
@@ -31,7 +31,7 @@ namespace IngameScript
 
             IMyTerminalBlock storageBlock;
 
-            public ConfigCommandHelper(IMyTerminalBlock storageBlock, Dictionary<string, Action<string[]>> commands)
+            public CommandHandler(IMyTerminalBlock storageBlock, Dictionary<string, Action<string[]>> commands)
             {
                 if (!config.TryParse(storageBlock.CustomData))
                 {
