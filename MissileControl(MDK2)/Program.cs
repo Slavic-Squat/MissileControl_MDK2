@@ -29,7 +29,8 @@ namespace IngameScript
 
         #region Broadcast Info
         private IMyBroadcastListener broadcastListener;
-        private string broadcastTag;
+        private string channelTag;
+        private string missileTag;
         #endregion
 
         #region State Info
@@ -45,6 +46,8 @@ namespace IngameScript
 
             commands["InitMissile"] = (args) =>
             {
+                missileTag = args[1];
+                broadcastListener = IGC.RegisterBroadcastListener($"[{missileTag}]_Commands");
                 missile.InitMissile(args[0], args[1]);
                 SyncClock(args[2]);
             };
@@ -94,7 +97,7 @@ namespace IngameScript
         public void RecieveClock(string channel)
         {
             listeningForClock = true;
-            broadcastTag = channel;
+            channelTag = channel;
             broadcastListener = IGC.RegisterBroadcastListener(channel);
         }
     }

@@ -27,12 +27,12 @@ namespace IngameScript
             #region General Info
             private Program program;
             private int ID;
-            private string IDString;
+            private string missileTag;
             private bool clusterMissile;
             #endregion
 
             #region Broadcast Info
-            private string broadcastTag;
+            private string launcherTag;
             private long selectedTargetID;
             private IMyBroadcastListener targetsInfoListener;
             private IMyBroadcastListener launcherInfoListener;
@@ -104,7 +104,7 @@ namespace IngameScript
 
             public enum Stage
             {
-                Idle, Launching, Flying, Interception
+                Idle, Launching, Flying, Interception, Detonation
             }
 
             public MissileControl(Program program, int ID, bool clusterMissile)
@@ -184,9 +184,6 @@ namespace IngameScript
                     missileMass = remoteControl.CalculateShipMass().PhysicalMass;
                     missilePosition = remoteControl.CubeGrid.GetPosition();
                     missileVelocity = remoteControl.GetShipVelocities().LinearVelocity;
-
-                    var messageOut = new MyTuple<string, Vector3, Vector3>(IDString, missilePosition, missileVelocity);
-                    program.IGC.SendBroadcastMessage($"[{broadcastTag}]_MissileInfo", messageOut);
 
                     while (targetsInfoListener.HasPendingMessage)
                     {
@@ -280,6 +277,7 @@ namespace IngameScript
 
                                 if (timeToTarget > 0 && timeToTarget < 5)
                                 {
+                                    stage = Stage.Detonation;
                                     foreach (IMyWarhead warhead in payload)
                                     {
                                         warhead.IsArmed = true;
@@ -296,6 +294,7 @@ namespace IngameScript
                             {
                                 if (timeToTarget <= 0.5f)
                                 {
+                                    stage = Stage.Detonation;
                                     foreach (IMyWarhead warhead in payload)
                                     {
                                         warhead.IsArmed = true;
@@ -366,15 +365,18 @@ namespace IngameScript
                             thruster.Key.ThrustOverridePercentage = 0;
                         }
                     }
+
+                    var messageOut = new MyTuple<string, string, long, Vector3, Vector3>(missileTag, stage.ToString(), selectedTargetID, missilePosition, missileVelocity);
+                    program.IGC.SendBroadcastMessage($"[{launcherTag}]_MissileInfo", messageOut);
                 }
             }
 
-            public void InitMissile(string broadcastTag, string IDString)
+            public void InitMissile(string launcherTag, string missileTag)
             {
-                targetsInfoListener = program.IGC.RegisterBroadcastListener($"[{broadcastTag}]_TargetInfo");
-                launcherInfoListener = program.IGC.RegisterBroadcastListener($"[{broadcastTag}]_LauncherInfo");
-                this.IDString = IDString;
-                this.broadcastTag = broadcastTag;
+                targetsInfoListener = program.IGC.RegisterBroadcastListener($"[{launcherTag}]_TargetInfo");
+                launcherInfoListener = program.IGC.RegisterBroadcastListener($"[{launcherTag}]_LauncherInfo");
+                this.missileTag = missileTag;
+                this.launcherTag = launcherTag;
                 active = true;
             }
 
