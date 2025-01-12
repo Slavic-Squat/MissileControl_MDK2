@@ -47,6 +47,7 @@ namespace IngameScript
 
                 float differencial = (input - priorValue) / timeDelta;
                 priorValue = input;
+                GetIntegral(input, timeDelta);
                 float result = Kp * input + Ki * integralValue + Kd * differencial;
 
                 return result;

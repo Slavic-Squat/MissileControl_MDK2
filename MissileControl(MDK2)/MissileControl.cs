@@ -43,7 +43,7 @@ namespace IngameScript
             #region Parts
             private List<IMyGyro> gyros = new List<IMyGyro>();
             private IMyRemoteControl remoteControl;
-            private IMyShipMergeBlock mergeBlock;
+            private IMyShipConnector connector;
             private List<IMyWarhead> payload = new List<IMyWarhead>();
             private List<IMyMotorStator> attachmentRotors = new List<IMyMotorStator>();
             private List<IMyThrust> thrusters = new List<IMyThrust>();
@@ -56,19 +56,13 @@ namespace IngameScript
             #endregion
 
             #region Properties
-            private float maxForwardThrust;
-            private float maxBackwardThrust;
-            private float maxLeftwardThrust;
-            private float maxRightwardThrust;
-            private float maxUpwardThrust;
-            private float maxDownwardThrust;
-
             private float missileMass;
 
             private float maxForwardAccel;
             private float maxRadialAccel;
 
             private Dictionary<IMyThrust, MyTuple<Vector3, Direction>> thrusterInfo = new Dictionary<IMyThrust, MyTuple<Vector3, Direction>>();
+            private Dictionary<Direction, float> maxThrustInfo = new Dictionary<Direction, float>();
             #endregion
 
             #region State Info
@@ -113,71 +107,116 @@ namespace IngameScript
                 this.ID = ID;
                 this.clusterMissile = clusterMissile;
 
-                program.GridTerminalSystem.GetBlockGroupWithName($"Missile Thrusters [{ID}]").GetBlocksOfType<IMyThrust>(thrusters);
-                program.GridTerminalSystem.GetBlockGroupWithName($"Missile Gyros [{ID}]").GetBlocksOfType<IMyGyro>(gyros);
-                remoteControl = (IMyRemoteControl)program.GridTerminalSystem.GetBlockWithName($"Missile Controller [{ID}]");
-                mergeBlock = (IMyShipMergeBlock)program.GridTerminalSystem.GetBlockWithName($"Missile Merge Block [{ID}]");
-                program.GridTerminalSystem.GetBlockGroupWithName($"Payload [{ID}]").GetBlocksOfType(payload);
-
-                if (clusterMissile == true)
-                {
-                    program.GridTerminalSystem.GetBlockGroupWithName($"Attachment Rotors [{ID}]").GetBlocksOfType(attachmentRotors);
-                }
-
+                TryGetBlocks();
                 Init();
 
                 pitchController = new PIDControl(1.0f, 0, 0.2f);
                 yawController = new PIDControl(1.0f, 0, 0.2f);
 
-                missileGuidance = new MissileGuidance(maxForwardAccel, maxRadialAccel, 3.5f, 10);
+                missileGuidance = new MissileGuidance(maxForwardAccel, maxRadialAccel, 3.5f, maxSpeed: 250);
+            }
+
+            public bool TryGetBlocks()
+            {
+                try
+                {
+                    var thrusterGroup = program.GridTerminalSystem.GetBlockGroupWithName($"Missile Thrusters [{ID}]");
+                    if (thrusterGroup == null)
+                    {
+                        throw new Exception();
+                    }
+                    thrusterGroup.GetBlocksOfType<IMyThrust>(thrusters);
+                    var gyroGroup = program.GridTerminalSystem.GetBlockGroupWithName($"Missile Gyros [{ID}]");
+                    if (gyroGroup == null)
+                    {
+                        throw new Exception();
+                    }
+                    gyroGroup.GetBlocksOfType<IMyGyro>(gyros);
+                    remoteControl = program.GridTerminalSystem.GetBlockWithName($"Missile Controller [{ID}]") as IMyRemoteControl;
+                    if (remoteControl == null)
+                    {
+                        throw new Exception();
+                    }
+                    connector = program.GridTerminalSystem.GetBlockWithName($"Missile Connector [{ID}]") as IMyShipConnector;
+                    if (connector == null)
+                    {
+                        throw new Exception();
+                    }
+                    var payloadGroup = program.GridTerminalSystem.GetBlockGroupWithName($"Payload [{ID}]");
+                    if (payloadGroup == null)
+                    {
+                        throw new Exception();
+                    }
+                    payloadGroup.GetBlocksOfType<IMyWarhead>(payload);
+
+                    if (clusterMissile == true)
+                    {
+                        var attachmentGroup = program.GridTerminalSystem.GetBlockGroupWithName($"Attachment Rotors [{ID}]");
+                        if (attachmentGroup == null)
+                        {
+                            throw new Exception();
+                        }
+                        attachmentGroup.GetBlocksOfType<IMyMotorStator>(attachmentRotors);
+                    }
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    program.Echo("Error in MissileControl Construction");
+                    return false;
+                }
             }
 
             public void Init()
             {
+                foreach (Direction direction in Enum.GetValues(typeof(Direction)))
+                {
+                    maxThrustInfo.Add(direction, 0);
+                }
                 foreach (IMyThrust thruster in thrusters)
                 {
                     Vector3D localThrusterDirection = Vector3.Round(Vector3.TransformNormal(thruster.WorldMatrix.Backward, Matrix.Transpose(remoteControl.WorldMatrix)), 1);
 
                     if (localThrusterDirection.Z == -1)
                     {
-                        maxForwardThrust += thruster.MaxThrust;
+                        maxThrustInfo[Direction.Forward] += thruster.MaxThrust;
                         thrusterInfo.Add(thruster, new MyTuple<Vector3, Direction>(localThrusterDirection, Direction.Forward));
                     }
                     else if (localThrusterDirection.Z == 1)
                     {
-                        maxBackwardThrust += thruster.MaxThrust;
+                        maxThrustInfo[Direction.Backward] += thruster.MaxThrust;
                         thrusterInfo.Add(thruster, new MyTuple<Vector3, Direction>(localThrusterDirection, Direction.Backward));
                     }
                     else if (localThrusterDirection.X == -1)
                     {
-                        maxLeftwardThrust += thruster.MaxThrust;
+                        maxThrustInfo[Direction.Leftward] += thruster.MaxThrust;
                         thrusterInfo.Add(thruster, new MyTuple<Vector3, Direction>(localThrusterDirection, Direction.Leftward));
                     }
                     else if (localThrusterDirection.X == 1)
                     {
-                        maxRightwardThrust += thruster.MaxThrust;
+                        maxThrustInfo[Direction.Rightward] += thruster.MaxThrust;
                         thrusterInfo.Add(thruster, new MyTuple<Vector3, Direction>(localThrusterDirection, Direction.Rightward));
                     }
                     else if (localThrusterDirection.Y == 1)
                     {
-                        maxUpwardThrust += thruster.MaxThrust;
+                        maxThrustInfo[Direction.Upward] += thruster.MaxThrust;
                         thrusterInfo.Add(thruster, new MyTuple<Vector3, Direction>(localThrusterDirection, Direction.Upward));
                     }
                     else if (localThrusterDirection.Y == -1)
                     {
-                        maxDownwardThrust += thruster.MaxThrust;
+                        maxThrustInfo[Direction.Downward] += thruster.MaxThrust;
                         thrusterInfo.Add(thruster, new MyTuple<Vector3, Direction>(localThrusterDirection, Direction.Downward));
                     }
                 }
 
                 missileMass = remoteControl.CalculateShipMass().PhysicalMass;
-                maxForwardAccel = maxForwardThrust / missileMass;
-                maxRadialAccel = maxRightwardThrust / missileMass;
+                maxForwardAccel = maxThrustInfo[Direction.Forward] / missileMass;
+                maxRadialAccel = maxThrustInfo[Direction.Rightward] / missileMass;
             }
 
             public void Run(DateTime time)
             {
-                if (active)
+                if (stage > Stage.Idle)
                 {
                     float timeDelta = (float)program.Runtime.TimeSinceLastRun.TotalSeconds;
 
@@ -238,7 +277,7 @@ namespace IngameScript
 
                         case Stage.Launching:
 
-                            mergeBlock.Enabled = false;
+                            connector.Disconnect();
                             localVectorToAlign = -Vector3.UnitZ;
                             localTotalAcceleration = maxForwardAccel * localVectorToAlign;
 
@@ -312,9 +351,7 @@ namespace IngameScript
                     Matrix alignedMatrix = Matrix.Transform(Matrix.Identity, quaternion);
 
                     float yawError = (float)Math.Atan2(-alignedMatrix.M13, alignedMatrix.M11);
-                    program.Echo(yawError.ToString());
                     float pitchError = (float)Math.Atan2(-alignedMatrix.M32, alignedMatrix.M22);
-                    program.Echo(pitchError.ToString());
                     float yawCorrection = yawController.Run(yawError, timeDelta);
                     float pitchCorrection = pitchController.Run(pitchError, timeDelta);
 
@@ -325,36 +362,10 @@ namespace IngameScript
                     }
 
 
-                    foreach (KeyValuePair<IMyThrust, MyTuple<Vector3, Direction>> thruster in thrusterInfo)
+                    foreach (var thruster in thrusterInfo)
                     {
                         Vector3 localTargetThrustVector = localTotalAcceleration * missileMass;
-                        float maxThrust = 0;
-                        switch (thruster.Value.Item2)
-                        {
-                            case Direction.Forward:
-                                maxThrust = maxForwardThrust;
-                                break;
-
-                            case Direction.Backward:
-                                maxThrust = maxBackwardThrust;
-                                break;
-
-                            case Direction.Leftward:
-                                maxThrust = maxLeftwardThrust;
-                                break;
-
-                            case Direction.Rightward:
-                                maxThrust = maxRightwardThrust;
-                                break;
-
-                            case Direction.Upward:
-                                maxThrust = maxUpwardThrust;
-                                break;
-
-                            case Direction.Downward:
-                                maxThrust = maxDownwardThrust;
-                                break;
-                        }
+                        float maxThrust = maxThrustInfo[thruster.Value.Item2];
 
                         if (Vector3.Dot(localVectorToAlign, Vector3.Forward) > 0.95f && maxThrust != 0)
                         {
@@ -366,18 +377,25 @@ namespace IngameScript
                         }
                     }
 
-                    var messageOut = new MyTuple<string, string, long, Vector3, Vector3>(missileTag, stage.ToString(), selectedTargetID, missilePosition, missileVelocity);
-                    program.IGC.SendBroadcastMessage($"[{launcherTag}]_MissileInfo", messageOut);
+                    var messageOut = new MyTuple<MyTuple<string, string, long, long>, MyTuple<Vector3, Vector3, Vector3>>()
+                    {
+                        Item1 = new MyTuple<string, string, long, long>(missileTag, stage.ToString(), selectedTargetID, time.Ticks),
+                        Item2 = new MyTuple<Vector3, Vector3, Vector3>(missilePosition, missileVelocity, remoteControl.WorldMatrix.Forward)
+                    };
+                    program.IGC.SendBroadcastMessage($"[{launcherTag}]_MissilesInfo", messageOut);
+
+                    program.Echo(stage.ToString());
                 }
             }
 
             public void InitMissile(string launcherTag, string missileTag)
             {
-                targetsInfoListener = program.IGC.RegisterBroadcastListener($"[{launcherTag}]_TargetInfo");
+                targetsInfoListener = program.IGC.RegisterBroadcastListener($"[{launcherTag}]_TargetsInfo");
                 launcherInfoListener = program.IGC.RegisterBroadcastListener($"[{launcherTag}]_LauncherInfo");
                 this.missileTag = missileTag;
                 this.launcherTag = launcherTag;
                 active = true;
+                program.Runtime.UpdateFrequency = UpdateFrequency.Update1;
             }
 
             public void Launch(string targetIDString)
@@ -385,11 +403,6 @@ namespace IngameScript
                 long.TryParse(targetIDString, out selectedTargetID);
 
                 stage = Stage.Launching;
-
-                if (program.Runtime.UpdateFrequency != UpdateFrequency.Update1)
-                {
-                    program.Runtime.UpdateFrequency = UpdateFrequency.Update1;
-                }
             }
 
             public void ResetMissile()

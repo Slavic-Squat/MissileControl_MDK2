@@ -65,13 +65,13 @@ namespace IngameScript
 
         public void Main(string argument, UpdateType updateSource)
         {
+            time += Runtime.TimeSinceLastRun;
             if (argument != null)
             {
                 commandHandler.TryRunCommand(argument);
             }
             commandHandler.Run();
 
-            time += Runtime.TimeSinceLastRun;
             if (listeningForClock && broadcastListener != null)
             {
                 while (broadcastListener.HasPendingMessage)
@@ -85,6 +85,7 @@ namespace IngameScript
                 }
             }
             missile.Run(time);
+            Echo(time.ToString());
         }
 
         public void SyncClock(string ticksString)

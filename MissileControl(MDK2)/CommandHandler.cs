@@ -37,6 +37,19 @@ namespace IngameScript
                 {
                     throw new Exception();
                 }
+                if (!config.ContainsSection("User Commands"))
+                {
+                    config.AddSection("User Commands");
+                }
+                if (!config.ContainsSection("Queued Commands"))
+                {
+                    config.AddSection("Queued Commands");
+                }
+                if (!config.ContainsSection("Script Info"))
+                {
+                    config.AddSection("Script Info");
+                }
+                storageBlock.CustomData = config.ToString();
 
                 this.storageBlock = storageBlock;
                 this.commands = commands;
