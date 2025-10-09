@@ -24,132 +24,61 @@ namespace IngameScript
     {
         public class CommandHandler
         {
-            private MyIni config = new MyIni();
-            private bool updatesPending = false;
-            private MyCommandLine commandLine = new MyCommandLine();
-            private Dictionary<string, Action<string[]>> commands = new Dictionary<string, Action<string[]>>();
+            private MyCommandLine _commandLine = new MyCommandLine();
+            private Dictionary<string, Action<string[]>> _commands = new Dictionary<string, Action<string[]>>();
 
-            private IMyTerminalBlock storageBlock;
+            private IMyTerminalBlock _storageBlock;
 
             public CommandHandler(IMyTerminalBlock storageBlock, Dictionary<string, Action<string[]>> commands)
             {
-                if (!config.TryParse(storageBlock.CustomData))
-                {
-                    throw new Exception();
-                }
-                if (!config.ContainsSection("User Commands"))
-                {
-                    config.AddSection("User Commands");
-                }
-                if (!config.ContainsSection("Queued Commands"))
-                {
-                    config.AddSection("Queued Commands");
-                }
-                if (!config.ContainsSection("Script Info"))
-                {
-                    config.AddSection("Script Info");
-                }
-                storageBlock.CustomData = config.ToString();
-
-                this.storageBlock = storageBlock;
-                this.commands = commands;
+                _storageBlock = storageBlock;
+                _commands = commands;
             }
 
-            public void Run()
+            public void RunCustomDataCommands()
             {
-                if (updatesPending)
+                if (_storageBlock.CustomData != null || _storageBlock.CustomData != "")
                 {
-                    UpdateConfig();
+                    TryRunCommands(_storageBlock.CustomData);
+                    _storageBlock.CustomData = "";
                 }
-                TryRunQueuedCommands();
             }
 
-            public bool TryRunCommand(string commandString)
+            public bool TryRunCommands(string commandsString)
             {
                 try
                 {
-                    if (commandLine.TryParse(commandString))
+                    string[] separatedCommandStrings = commandsString.Split('|', '\n');
+                    foreach (string commandString in separatedCommandStrings)
                     {
-                        if (commandLine.Switch("ConfigUpdated"))
+                        commandsString = commandString.Trim();
+                        if (_commandLine.TryParse(commandString))
                         {
-                            updatesPending = true;
-                        }
-                        string commandName = commandLine.Argument(0);
-                        string[] commandArguments = new string[commandLine.ArgumentCount - 1];
-                        for (int i = 0; i < commandArguments.Length; i++)
-                        {
-                            commandArguments[i] = commandLine.Argument(i + 1);
-                        }
-                        Action<string[]> command;
-
-                        if (commandName != null)
-                        {
-                            if (commands.TryGetValue(commandName, out command))
+                            string commandName = _commandLine.Argument(0);
+                            string[] commandArguments = new string[_commandLine.ArgumentCount - 1];
+                            for (int i = 0; i < commandArguments.Length; i++)
                             {
-                                command(commandArguments);
+                                commandArguments[i] = _commandLine.Argument(i + 1);
                             }
-                            else
+                            Action<string[]> command;
+
+                            if (commandName != null)
                             {
-                                throw new Exception();
+                                if (_commands.TryGetValue(commandName, out command))
+                                {
+                                    command(commandArguments);
+                                }
+                                else
+                                {
+                                    throw new Exception();
+                                }
                             }
+                            return true;
                         }
-                        return true;
-                    }
-                    else
-                    {
-                        throw new Exception();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    return false;
-                }
-            }
-
-            public bool TryQueueUserCommand(string userCommandName)
-            {
-                try
-                {
-                    string userCommandString = config.Get("User Commands", userCommandName).ToString();
-                    int queuedCommandsCounter = config.Get("Script Info", "Queued Commands Counter").ToInt32();
-                    config.Set("Queued Commands", $"{queuedCommandsCounter}", userCommandString);
-                    queuedCommandsCounter++;
-                    config.Set("Script Info", "Queued Commands Counter", $"{queuedCommandsCounter}");
-                    storageBlock.CustomData = config.ToString();
-                    return true;
-                }
-                catch (Exception ex)
-                {
-                    return false;
-                }
-            }
-
-            public bool TryDequeueUserCommand(string userCommandName)
-            {
-                try
-                {
-                    config.Delete("Queued Commands", userCommandName);
-                    storageBlock.CustomData = config.ToString();
-                    return true;
-                }
-                catch (Exception ex)
-                {
-                    return false;
-                }
-            }
-
-            public bool TryRunQueuedCommands()
-            {
-                try
-                {
-                    List<MyIniKey> queuedCommandKeys = new List<MyIniKey>();
-                    config.GetKeys("Queued Commands", queuedCommandKeys);
-                    queuedCommandKeys.Sort();
-
-                    foreach (var queueCommandKey in queuedCommandKeys)
-                    {
-                        TryRunCommand(config.Get(queueCommandKey).ToString());
-                        TryDequeueUserCommand(queueCommandKey.Name);
+                        else
+                        {
+                            throw new Exception();
+                        }
                     }
                     return true;
                 }
@@ -157,12 +86,6 @@ namespace IngameScript
                 {
                     return false;
                 }
-            }
-
-            public void UpdateConfig()
-            {
-                config.TryParse(storageBlock.CustomData);
-                updatesPending = false;
             }
         }
     }
