@@ -230,10 +230,6 @@ namespace IngameScript
                         if (messageIn.Data is ImmutableDictionary<long, MyTuple<Vector3, Vector3, long>>)
                         {
                             targetsInfo = messageIn.As<ImmutableDictionary<long, MyTuple<Vector3, Vector3, long>>>();
-
-                            targetPosition = targetsInfo[selectedTargetID].Item1;
-                            targetVelocity = targetsInfo[selectedTargetID].Item2;
-                            targetInfoTime = new DateTime(targetsInfo[selectedTargetID].Item3);
                         }
                     }
                     while (launcherInfoListener.HasPendingMessage)
@@ -242,12 +238,21 @@ namespace IngameScript
                         if (messageIn.Data is MyTuple<string, Vector3, Vector3, long>)
                         {
                             launcherInfo = messageIn.As<MyTuple<string, Vector3, Vector3, long>>();
-
-                            launcherPosition = launcherInfo.Item2;
-                            launcherVelocity = launcherInfo.Item3;
-                            launcherInfoTime = new DateTime(launcherInfo.Item4);
                         }
                     }
+
+                    if (!targetsInfo.ContainsKey(selectedTargetID))
+                    {
+                        selectedTargetID = targetsInfo.MinBy(x => (x.Value.Item1 - missilePosition).Length()).Key;
+                    }
+                    targetPosition = targetsInfo[selectedTargetID].Item1;
+                    targetVelocity = targetsInfo[selectedTargetID].Item2;
+                    targetInfoTime = new DateTime(targetsInfo[selectedTargetID].Item3);
+
+                    launcherPosition = launcherInfo.Item2;
+                    launcherVelocity = launcherInfo.Item3;
+                    launcherInfoTime = new DateTime(launcherInfo.Item4);
+
                     Vector3 estimatedTargetPos = targetPosition;
                     Vector3 estimatedLauncherPos = launcherPosition;
                     if (targetInfoTime < time)
