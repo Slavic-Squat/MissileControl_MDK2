@@ -24,6 +24,10 @@ namespace IngameScript
     {
         public enum MissileType : byte
         {
+            Unknown, AntiShip, AntiMissile, Cluster
+        }
+        public enum MissileGuidanceType : byte
+        {
             Unknown, MCLOS,
         }
 
@@ -52,53 +56,9 @@ namespace IngameScript
             None, MissileInfoLite, MissileInfo,
         }
 
-        public enum NavigationDirection
+        public enum Direction
         {
-            Left, Right, Up, Down
-        }
-
-        public static string GetName(EntityType type)
-        {
-            switch (type)
-            {
-                case EntityType.Target: return "TRGT";
-                case EntityType.Missile: return "MISL";
-                default: return "N/A";
-            }
-        }
-
-        public static string GetName(MissileStage stage)
-        {
-            switch (stage)
-            {
-                case MissileStage.Unknown: return "N/A";
-                case MissileStage.Launching: return "LAUNCHING";
-                case MissileStage.Flying: return "FLYING";
-                case MissileStage.Interception: return "INTERCEPTION";
-                default: return "N/A";
-            }
-        }
-
-        public static string GetName(MissileType type)
-        {
-            switch (type)
-            {
-                case MissileType.Unknown: return "N/A";
-                case MissileType.MCLOS: return "MCLOS";
-                default: return "N/A";
-            }
-        }
-
-        public static string GetName(MissilePayload payload)
-        {
-            switch (payload)
-            {
-                case MissilePayload.Unknown: return "N/A";
-                case MissilePayload.HE: return "HE";
-                case MissilePayload.Nuclear: return "NUKE";
-                case MissilePayload.Kinectic: return "KINECTIC";
-                default: return "N/A";
-            }
+            Left, Right, Up, Down, Forward, Backward
         }
     }
 }
