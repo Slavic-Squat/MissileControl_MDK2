@@ -26,11 +26,13 @@ namespace IngameScript
         {
             public int ID { get; private set; }
             public MissileStage Stage { get; private set; }
+            public MissileType Type { get; private set; }
+            public MissileGuidanceType GuidanceType { get; private set; }
             public EntityInfo Target { get; set; }
-            public EntityInfo Missile { get; private set; }
+            public EntityInfo Self { get; private set; }
             public EntityInfo Launcher { get; set; }
 
-            private IMyCubeBlock _referenceBlock;
+
             private List<IMyGyro> _gyros = new List<IMyGyro>();
             private IMyRemoteControl _remoteControl;
             private IMyShipConnector _connector;
@@ -50,10 +52,9 @@ namespace IngameScript
             private List<ThrusterInfo> _thrusterInfos = new List<ThrusterInfo>();
             private Dictionary<Direction, float> _maxThrust = new Dictionary<Direction, float>();
 
-            public MissileControl(int ID, IMyCubeBlock referenceBlock)
+            public MissileControl(int ID)
             {
                 this.ID = ID;
-                _referenceBlock = referenceBlock;
 
                 TryGetBlocks();
                 Init();

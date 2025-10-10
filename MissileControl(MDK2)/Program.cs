@@ -22,28 +22,23 @@ namespace IngameScript
 {
     partial class Program : MyGridProgram
     {
-        private CommandHandler _commandHandler;
-        private Dictionary<string, Action<string[]>> commands = new Dictionary<string, Action<string[]>>();
         private SystemCoordinator _systemCoordinator;
         public static IMyGridTerminalSystem GTS { get; private set; }
         public static IMyIntergridCommunicationSystem IGCS { get; private set; }
         public static IMyProgrammableBlock MePB { get; private set; }
         public static Action<string> DebugEcho { get; private set; }
+        public static IMyGridProgramRuntimeInfo RuntimeInfo { get; private set; }
 
         public Program()
         {
-            Runtime.UpdateFrequency = UpdateFrequency.Once;
+            Runtime.UpdateFrequency = UpdateFrequency.Update1;
             GTS = GridTerminalSystem;
             IGCS = IGC;
             MePB = Me;
             DebugEcho = Echo;
+            RuntimeInfo = Runtime;
 
-
-            List<IMyRemoteControl> controlBlocks = new List<IMyRemoteControl>();
-            GTS.GetBlocksOfType(controlBlocks, b => b.IsSameConstructAs(Me) && b.CustomData.Contains("Missile Controller"));
-            var controlBlock = controlBlocks.FirstOrDefault();
-
-            _systemCoordinator = new SystemCoordinator(controlBlock);
+            _systemCoordinator = new SystemCoordinator();
         }
 
         public void Save()
@@ -53,7 +48,11 @@ namespace IngameScript
 
         public void Main(string argument, UpdateType updateSource)
         {
-            
+            if (argument != null)
+            {
+                _systemCoordinator.Command(argument);
+            }
+            _systemCoordinator.Run();
         }
     }
 }
