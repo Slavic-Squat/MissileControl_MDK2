@@ -28,19 +28,30 @@ namespace IngameScript
             private Dictionary<string, Action<string[]>> _commands = new Dictionary<string, Action<string[]>>();
 
             private IMyTerminalBlock _storageBlock;
+            private string _commandsHeader = "[COMMANDS]\n";
 
             public CommandHandler(IMyTerminalBlock storageBlock, Dictionary<string, Action<string[]>> commands)
             {
                 _storageBlock = storageBlock;
                 _commands = commands;
+                _storageBlock.CustomData = _commandsHeader;
             }
 
             public void RunCustomDataCommands()
             {
-                if (_storageBlock.CustomData != null || _storageBlock.CustomData != "")
+                string commands = null;
+                if (!_storageBlock.CustomData.StartsWith(_commandsHeader))
                 {
-                    TryRunCommands(_storageBlock.CustomData);
-                    _storageBlock.CustomData = "";
+                    _storageBlock.CustomData = _commandsHeader;
+                }
+                else
+                {
+                    commands = _storageBlock.CustomData.Substring(_commandsHeader.Length);
+                }
+                if (commands != null)
+                {
+                    TryRunCommands(commands);
+                    _storageBlock.CustomData = _commandsHeader;
                 }
             }
 

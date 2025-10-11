@@ -38,7 +38,7 @@ namespace IngameScript
 
         public enum MissileStage : byte
         {
-            Unknown, Active, Launching, Flying, Interception
+            Unknown, Idle, Active, Launching, Flying, Interception
         }
 
         public enum EntityType : byte

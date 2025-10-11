@@ -31,17 +31,15 @@ namespace IngameScript
             public MissileGuidanceType GuidanceType { get; private set; }
             public MissilePayload Payload { get; private set; }
             public long TargetID { get; private set; }
-            public long Address { get; private set; }
             public bool IsValid { get; private set; }
 
-            public MissileInfo(long launcherID, long targetID, MissileStage stage, MissileType type, MissileGuidanceType guidanceType, MissilePayload payload, long address)
+            public MissileInfo(long launcherID, long targetID, MissileStage stage, MissileType type, MissileGuidanceType guidanceType, MissilePayload payload)
             {
                 LauncherID = launcherID;
                 TargetID = targetID;
                 Stage = stage;
                 Type = type;
                 Payload = payload;
-                Address = address;
                 GuidanceType = guidanceType;
                 IsValid = true;
             }
@@ -56,7 +54,6 @@ namespace IngameScript
                 bytes.Add((byte)GuidanceType);
                 bytes.Add((byte)Payload);
                 bytes.AddRange(BitConverter.GetBytes(TargetID));
-                bytes.AddRange(BitConverter.GetBytes(Address));
                 return bytes.ToArray();
             }
 
@@ -75,9 +72,7 @@ namespace IngameScript
                 index += 1;
                 long targetID = BitConverter.ToInt64(data, index);
                 index += 8;
-                long address = BitConverter.ToInt64(data, index);
-                index += 8;
-                return new MissileInfo(launcherID, targetID, stage, type, guidanceType, payload, address);
+                return new MissileInfo(launcherID, targetID, stage, type, guidanceType, payload);
             }
         }
     }

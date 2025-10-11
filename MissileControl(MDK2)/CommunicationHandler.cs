@@ -95,7 +95,12 @@ namespace IngameScript
 
             public void UnregisterBroadcastListener(string tag)
             {
-                _broadcastListeners.RemoveWhere(l => l.Tag == tag);
+                List<IMyBroadcastListener> toRemove = _broadcastListeners.Where(l => l.Tag == tag).ToList();
+                foreach (var listener in toRemove)
+                {
+                    _broadcastListeners.Remove(listener);
+                    IGCS.DisableBroadcastListener(listener);
+                }
             }
 
             public void RegisterTag(string tag)
@@ -109,6 +114,7 @@ namespace IngameScript
             public void UnregisterTag(string tag)
             {
                 _messages.Remove(tag);
+                UnregisterBroadcastListener(tag);
             }
 
             public bool HasMessage(string tag)

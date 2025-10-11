@@ -26,11 +26,14 @@ namespace IngameScript
         {
             public int ID { get; private set; }
             public MissileStage Stage { get; private set; }
-            public MissileType Type { get; private set; }
-            public MissileGuidanceType GuidanceType { get; private set; }
+            public MissileType Type { get; set; }
+            public MissileGuidanceType GuidanceType { get; set; }
+            public MissilePayload Payload { get; set; }
+            public Vector3 MissilePos { get; private set; }
+            public Vector3 MissileVel { get; private set; }
             public EntityInfo Target { get; set; }
-            public EntityInfo Self { get; private set; }
             public EntityInfo Launcher { get; set; }
+            public DateTime LasRunTime { get; private set; }
 
 
             private List<IMyGyro> _gyros = new List<IMyGyro>();
@@ -38,8 +41,6 @@ namespace IngameScript
             private IMyShipConnector _connector;
             private List<IMyWarhead> _payload = new List<IMyWarhead>();
             private List<IMyThrust> _thrusters = new List<IMyThrust>();
-
-            private DateTime _lastRunTime = DateTime.MinValue;
 
             private MissileGuidance _missileGuidance;
             private PIDControl _pitchController;
@@ -55,10 +56,9 @@ namespace IngameScript
             public MissileControl(int ID)
             {
                 this.ID = ID;
-
-                TryGetBlocks();
                 Init();
 
+                Stage = MissileStage.Idle;
                 _pitchController = new PIDControl(1.0f, 0, 0.2f);
                 _yawController = new PIDControl(1.0f, 0, 0.2f);
 
@@ -73,7 +73,7 @@ namespace IngameScript
                     GTS.GetBlocksOfType(_gyros, b => b.IsSameConstructAs(MePB) && b.CustomName.Contains("Gyro"));
 
                     List<IMyRemoteControl> controllers = new List<IMyRemoteControl>();
-                    GTS.GetBlocksOfType(controllers, b => b.IsSameConstructAs(MePB) && b.CustomName.Contains("Controller"));
+                    GTS.GetBlocksOfType(controllers, b => b.IsSameConstructAs(MePB) && b.IsMainCockpit);
                     _remoteControl = controllers.FirstOrDefault();
 
                     List<IMyShipConnector> connectors = new List<IMyShipConnector>();
@@ -92,8 +92,15 @@ namespace IngameScript
 
             public void Init()
             {
+                LasRunTime = DateTime.MinValue;
+                TryGetBlocks();
                 _thrusterInfos.Clear();
                 _maxThrust.Clear();
+
+                foreach (Direction dir in Enum.GetValues(typeof(Direction)))
+                {
+                    _maxThrust[dir] = 0;
+                }
 
                 foreach (IMyThrust thruster in _thrusters)
                 {
@@ -147,14 +154,14 @@ namespace IngameScript
 
             public void Run(DateTime time)
             {
-                if (_lastRunTime == DateTime.MinValue)
+                if (LasRunTime == DateTime.MinValue)
                 {
-                    _lastRunTime = time;
+                    LasRunTime = time;
                     return;
                 }
-                if (Stage >= MissileStage.Active)
+                if (Stage > MissileStage.Idle)
                 {
-                    float timeDelta = (float)(time - _lastRunTime).TotalSeconds;
+                    float timeDelta = (float)(time - LasRunTime).TotalSeconds;
 
                     float missileMass = _remoteControl.CalculateShipMass().PhysicalMass;
                     Vector3 missilePos = _remoteControl.CubeGrid.GetPosition();
@@ -230,17 +237,19 @@ namespace IngameScript
                             vectorToAlign = forwardVector;
                             break;
                     }
-                    Quaternion quaternion = Quaternion.CreateFromTwoVectors(forwardVector, vectorToAlign);
-                    Matrix alignedMatrix = Matrix.Transform(Matrix.Identity, quaternion);
+                    Vector3 forwardVectorLocal = Vector3.TransformNormal(forwardVector, Matrix.Transpose(_remoteControl.WorldMatrix));
+                    Vector3 vectorToAlignLocal = Vector3.TransformNormal(vectorToAlign, Matrix.Transpose(_remoteControl.WorldMatrix));
+                    Quaternion quaternion = Quaternion.CreateFromTwoVectors(forwardVectorLocal, vectorToAlignLocal);
+                    Matrix alignedMatrixLocal = Matrix.Transform(Matrix.Identity, quaternion);
 
-                    float yawError = (float)Math.Atan2(-alignedMatrix.M13, alignedMatrix.M11);
-                    float pitchError = (float)Math.Atan2(-alignedMatrix.M32, alignedMatrix.M22);
+                    float yawError = (float)Math.Atan2(-alignedMatrixLocal.M13, alignedMatrixLocal.M11);
+                    float pitchError = (float)Math.Atan2(-alignedMatrixLocal.M32, alignedMatrixLocal.M22);
                     float yawCorrection = _yawController.Run(yawError, timeDelta);
                     float pitchCorrection = _pitchController.Run(pitchError, timeDelta);
 
                     foreach (IMyGyro gyro in _gyros)
                     {
-                        gyro.Pitch = -pitchCorrection;
+                        gyro.Pitch = pitchCorrection;
                         gyro.Yaw = -yawCorrection;
                     }
 
@@ -311,6 +320,15 @@ namespace IngameScript
 
                 Quaternion quaternion = Quaternion.CreateFromAxisAngle(rotationVector, rotationAngle);
                 newVectorToAlign = Vector3.Transform(currentVectorToAlign, quaternion);
+            }
+
+            public void Activate()
+            {
+                if (Stage != MissileStage.Idle)
+                {
+                    return;
+                }
+                Stage = MissileStage.Active;
             }
         }
     }
