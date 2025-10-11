@@ -23,15 +23,19 @@ namespace IngameScript
     partial class Program : MyGridProgram
     {
         private SystemCoordinator _systemCoordinator;
+        public static Action<string> DebugEcho { get; private set; }
+        public static IMyProgrammableBlock MePB { get; private set; }
         public static IMyGridTerminalSystem GTS { get; private set; }
         public static IMyIntergridCommunicationSystem IGCS { get; private set; }
-        public static IMyProgrammableBlock MePB { get; private set; }
-        public static Action<string> DebugEcho { get; private set; }
         public static IMyGridProgramRuntimeInfo RuntimeInfo { get; private set; }
+
+        public static int DebugCounter { get; set; } = 0;
+
+        public static DebugAPI DebugDraw { get; private set; }
 
         public Program()
         {
-            Runtime.UpdateFrequency = UpdateFrequency.Update1;
+            Runtime.UpdateFrequency = UpdateFrequency.None;
             GTS = GridTerminalSystem;
             IGCS = IGC;
             MePB = Me;
@@ -39,6 +43,8 @@ namespace IngameScript
             RuntimeInfo = Runtime;
 
             _systemCoordinator = new SystemCoordinator();
+
+            DebugDraw = new DebugAPI(this, true);
         }
 
         public void Save()

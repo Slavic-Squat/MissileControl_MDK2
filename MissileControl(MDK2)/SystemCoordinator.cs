@@ -25,16 +25,17 @@ namespace IngameScript
         public class SystemCoordinator
         {
             public static DateTime SystemTime { get; private set; }
-            public static Matrix ReferenceBasis => _referenceBlock.WorldMatrix;
-            public static long SelfID => _referenceBlock.CubeGrid.EntityId;
-            public static long SelfAddress => IGCS.Me;
+            public static IMyShipController ReferenceController { get; private set; }
+            public static Matrix ReferenceBasis => ReferenceController.WorldMatrix;
+            public static Vector3 ReferencePosition => ReferenceController.GetPosition();
+            public static Vector3 ReferenceVelocity => ReferenceController.GetShipVelocities().LinearVelocity;
+            public static long SelfID => ReferenceController.CubeGrid.EntityId;
 
             public CommunicationHandler CommunicationHandler { get; private set; }
             public CommandHandler CommandHandler { get; private set; }
             public MissileControl MissileControl { get; private set; }
             public MyIni Config { get; private set; }
 
-            public long LauncherID { get; private set; }
             public long LauncherAddress { get; private set; }
             public MissileStage Stage => MissileControl.Stage;
             public MissileType Type { get; private set; }
@@ -45,13 +46,12 @@ namespace IngameScript
             public EntityInfo Launcher { get; private set; }
 
             private IMyTerminalBlock _storageBlock;
-            private static IMyCubeBlock _referenceBlock;
 
             private Dictionary<string, Action<string[]>> _commands = new Dictionary<string, Action<string[]>>();
             public SystemCoordinator()
             {
                 SystemTime = DateTime.Now;
-                TryGetBlocks();
+                GetBlocks();
 
                 CommunicationHandler = new CommunicationHandler(0);
                 CommandHandler = new CommandHandler(MePB, _commands);
@@ -63,47 +63,48 @@ namespace IngameScript
                 CommunicationHandler.RegisterTag("TargetInfo");
                 CommunicationHandler.RegisterTag("Commands");
                 _commands.Add("SYNC_CLOCK", (args) => SyncClock(args[0]));
+                _commands.Add("ON", (args) => TurnOn());
+                _commands.Add("OFF", (args) => TurnOff());
+                _commands.Add("ACTIVATE", (args) => ActivateMissile(args[0]));
+                _commands.Add("LAUNCH", (args) => LaunchMissile());
             }
 
             public void Init()
             {
                 Config.TryParse(_storageBlock.CustomData);
                 Config.Set("Data", "MissileID", SelfID);
-                Config.Set("Data", "MissileAddress", SelfAddress);
+                Config.Set("Data", "MissileAddress", IGCS.Me);
                 MissileType type;
                 Enum.TryParse(Config.Get("Data", "Type").ToString(), out type);
                 Type = type;
+                Config.Set("Data", "Type", Type.ToString());
                 MissileGuidanceType guidanceType;
                 Enum.TryParse(Config.Get("Data", "GuidanceType").ToString(), out guidanceType);
                 GuidanceType = guidanceType;
+                Config.Set("Data", "GuidanceType", GuidanceType.ToString());
                 MissilePayload payload;
                 Enum.TryParse(Config.Get("Data", "Payload").ToString(), out payload);
                 Payload = payload;
+                Config.Set("Data", "Payload", Payload.ToString());
+
+                _storageBlock.CustomData = Config.ToString();
 
                 MissileControl.Type = Type;
                 MissileControl.GuidanceType = GuidanceType;
                 MissileControl.Payload = Payload;
             }
 
-            public bool TryGetBlocks()
+            public void GetBlocks()
             {
-                try
-                {
-                    List<IMyTerminalBlock> tBlocks = new List<IMyTerminalBlock>();
-                    GTS.GetBlocksOfType(tBlocks, b => b.IsSameConstructAs(MePB) && b.CustomData.Contains("[Data]"));
-                    if (tBlocks.Count == 0) throw new Exception("No block with [Data] in CustomData found on this construct.");
+                List<IMyTerminalBlock> tBlocks = new List<IMyTerminalBlock>();
+                GTS.GetBlocksOfType(tBlocks, b => b.IsSameConstructAs(MePB) && b.CustomData.Contains("[Data]"));
+                if (tBlocks.Count == 0) throw new Exception("No block with [Data] in CustomData found on this construct.");
+                _storageBlock = tBlocks[0];
 
-                    List<IMyRemoteControl> rcBlocks = new List<IMyRemoteControl>();
-                    GTS.GetBlocksOfType(rcBlocks, b => b.IsSameConstructAs(MePB) && b.IsMainCockpit);
-                    if (rcBlocks.Count == 0) throw new Exception("No Remote Control block found on this construct.");
-                    _referenceBlock = rcBlocks[0];
-                    return true;
-                }
-                catch (Exception e)
-                {
-                    DebugEcho(e.Message);
-                    throw;
-                }
+                List<IMyShipController> ctrlBlocks = new List<IMyShipController>();
+                GTS.GetBlocksOfType(ctrlBlocks, b => b.IsSameConstructAs(MePB));
+                if (ctrlBlocks.Count == 0) throw new Exception("No Control block found on this construct.");
+                ReferenceController = ctrlBlocks[0];
             }
 
             public void Run()
@@ -122,11 +123,7 @@ namespace IngameScript
                         object msgObject = Deserializer.Deserialize(msg.Data as string);
                         if (msgObject is EntityInfo)
                         {
-                            var entity = (EntityInfo)msgObject;
-                            if (entity.EntityID == LauncherID)
-                            {
-                                Launcher = entity;
-                            }
+                            Launcher = (EntityInfo)msgObject;
                         }
                     }
                 }
@@ -151,8 +148,8 @@ namespace IngameScript
                     MissileControl.Launcher = Launcher;
                     MissileControl.Run(SystemTime);
 
-                    MissileInfo missileInfo = new MissileInfo(LauncherID, Target.EntityID, Stage, Type, GuidanceType, Payload);
-                    Self = new EntityInfo(SelfID, MissileControl.MissilePos, MissileControl.MissileVel, MissileControl.LasRunTime, missileInfo);
+                    MissileInfo missileInfo = new MissileInfo(Launcher.EntityID, Target.EntityID, Stage, Type, GuidanceType, Payload);
+                    Self = new EntityInfo(SelfID, ReferencePosition, ReferenceVelocity, SystemTime, missileInfo);
 
                     CommunicationHandler.SendUnicast(Self.Serialize(), LauncherAddress, "MyMissiles");
                 }                
@@ -160,7 +157,7 @@ namespace IngameScript
 
             public void Command(string command)
             {
-                CommandHandler.TryRunCommands(command);
+                CommandHandler.RunCommands(command);
             }
 
             public void SyncClock(string timeString)
@@ -172,14 +169,27 @@ namespace IngameScript
                 }
             }
 
-            public void ActivateMissile()
+            public void TurnOn()
             {
                 RuntimeInfo.UpdateFrequency = UpdateFrequency.Update1;
-                MissileControl.Activate();
+            }
 
-                Config.TryParse(_storageBlock.CustomData);
-                LauncherID = Config.Get("Data", "LauncherID").ToInt64(0);
-                LauncherAddress = Config.Get("Data", "LauncherAddress").ToInt64(0);
+            public void TurnOff()
+            {
+                RuntimeInfo.UpdateFrequency = UpdateFrequency.None;
+            }
+
+            public void ActivateMissile(string launcherAddressString)
+            {
+                long launcherAddress;
+                if (!long.TryParse(launcherAddressString, out launcherAddress)) return;
+                LauncherAddress = launcherAddress;
+                MissileControl.Activate();
+            }
+
+            public void LaunchMissile()
+            {
+                MissileControl.Launch();
             }
         }
     }

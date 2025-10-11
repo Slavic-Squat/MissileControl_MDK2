@@ -26,7 +26,6 @@ namespace IngameScript
         public class CommunicationHandler
         {
             public int ID { get; private set; }
-            public long SelfAddress => IGCS.Me;
 
             private HashSet<IMyBroadcastListener> _broadcastListeners = new HashSet<IMyBroadcastListener>();
             private IMyUnicastListener _unicastListener;
@@ -43,7 +42,7 @@ namespace IngameScript
                 while (_unicastListener.HasPendingMessage)
                 {
                     var message = _unicastListener.AcceptMessage();
-                    if (message.Source != SelfAddress && _messages.ContainsKey(message.Tag))
+                    if (message.Source != IGCS.Me && _messages.ContainsKey(message.Tag))
                     {
                         _messages[message.Tag].Enqueue(message);
 
@@ -60,7 +59,7 @@ namespace IngameScript
                     while (listener.HasPendingMessage)
                     {
                         var message = listener.AcceptMessage();
-                        if (message.Source != SelfAddress && _messages.ContainsKey(message.Tag))
+                        if (message.Source != IGCS.Me && _messages.ContainsKey(message.Tag))
                         {
                             _messages[message.Tag].Enqueue(message);
 

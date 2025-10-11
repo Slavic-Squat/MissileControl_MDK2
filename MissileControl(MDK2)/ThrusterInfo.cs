@@ -26,14 +26,13 @@ namespace IngameScript
         {
             public IMyThrust Thruster { get; private set; }
             public Direction Direction { get; private set; }
-            public Vector3 Vector { get; private set; }
+            public Vector3 Vector => Thruster.WorldMatrix.Backward;
             public float MaxThrust { get; private set; }
 
-            public ThrusterInfo(IMyThrust thruster, Direction direction, Vector3 vector)
+            public ThrusterInfo(IMyThrust thruster, Direction direction)
             {
                 Thruster = thruster;
                 Direction = direction;
-                Vector = vector;
                 MaxThrust = thruster.MaxEffectiveThrust;
             }
         }

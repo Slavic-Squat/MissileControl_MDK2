@@ -48,54 +48,41 @@ namespace IngameScript
                 {
                     commands = _storageBlock.CustomData.Substring(_commandsHeader.Length);
                 }
-                if (commands != null)
+                if (commands != null && commands != "")
                 {
-                    TryRunCommands(commands);
+                    RunCommands(commands);
                     _storageBlock.CustomData = _commandsHeader;
                 }
             }
 
-            public bool TryRunCommands(string commandsString)
+            public void RunCommands(string commandsString)
             {
-                try
+                if (commandsString == null || commandsString == "")
                 {
-                    string[] separatedCommandStrings = commandsString.Split('|', '\n');
-                    foreach (string commandString in separatedCommandStrings)
+                    return;
+                }
+                string[] separatedCommandStrings = commandsString.Split('|', '\n');
+                foreach (string commandString in separatedCommandStrings)
+                {
+                    commandsString = commandString.Trim();
+                    if (_commandLine.TryParse(commandString))
                     {
-                        commandsString = commandString.Trim();
-                        if (_commandLine.TryParse(commandString))
+                        string commandName = _commandLine.Argument(0);
+                        string[] commandArguments = new string[_commandLine.ArgumentCount - 1];
+                        for (int i = 0; i < commandArguments.Length; i++)
                         {
-                            string commandName = _commandLine.Argument(0);
-                            string[] commandArguments = new string[_commandLine.ArgumentCount - 1];
-                            for (int i = 0; i < commandArguments.Length; i++)
-                            {
-                                commandArguments[i] = _commandLine.Argument(i + 1);
-                            }
-                            Action<string[]> command;
-
-                            if (commandName != null)
-                            {
-                                if (_commands.TryGetValue(commandName, out command))
-                                {
-                                    command(commandArguments);
-                                }
-                                else
-                                {
-                                    throw new Exception();
-                                }
-                            }
-                            return true;
+                            commandArguments[i] = _commandLine.Argument(i + 1);
                         }
-                        else
+                        Action<string[]> command;
+
+                        if (commandName != null)
                         {
-                            throw new Exception();
+                            if (_commands.TryGetValue(commandName, out command))
+                            {
+                                command(commandArguments);
+                            }
                         }
                     }
-                    return true;
-                }
-                catch (Exception ex)
-                {
-                    return false;
                 }
             }
         }
