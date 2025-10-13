@@ -139,7 +139,7 @@ namespace IngameScript
                 while (CommunicationHandler.HasMessage("MyTargetInfo", true))
                 {
                     MyIGCMessage msg;
-                    if (CommunicationHandler.TryRetrieveMessage("TargetInfo", true, out msg))
+                    if (CommunicationHandler.TryRetrieveMessage("MyTargetInfo", true, out msg))
                     {
                         if (msg.Source != LauncherAddress) continue;
                         object msgObject = Deserializer.Deserialize(msg.Data as string);
