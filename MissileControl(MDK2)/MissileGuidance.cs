@@ -39,9 +39,9 @@ namespace IngameScript
 
             public Vector3 CalculateTotalAccel(Vector3 targetPos, Vector3 targetVel, Vector3 missilePos, Vector3 missileVel)
             {
-                Vector3 missileVelDir = Vector3.Normalize(missileVel);
+                Vector3 missileVelDir = missileVel == Vector3.Zero ? Vector3.Zero : Vector3.Normalize(missileVel);
                 Vector3 range = targetPos - missilePos;
-                Vector3 dirToTarget = Vector3.Normalize(range);
+                Vector3 dirToTarget = range == Vector3.Zero ? Vector3.Zero : Vector3.Normalize(range);
 
                 Vector3 relVel = targetVel - missileVel;
                 Vector3 rotationVector = Vector3.Cross(range, relVel) / Vector3.Dot(range, range);
@@ -56,7 +56,7 @@ namespace IngameScript
                 }
 
                 Vector3 proNavAccel = M * desiredRelAccel - N * Vector3.Cross(rotationVector, relVel) + Vector3.Cross(rotationVector, Vector3.Cross(rotationVector, range));
-                Vector3 proNavAccelDir = Vector3.Normalize(proNavAccel);
+                Vector3 proNavAccelDir = proNavAccel == Vector3.Zero ? Vector3.Zero : Vector3.Normalize(proNavAccel);
                 float proNavAccelMag = proNavAccel.Length();
 
                 if (proNavAccelMag > MaxAccel)
