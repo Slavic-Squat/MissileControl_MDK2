@@ -242,7 +242,25 @@ namespace IngameScript
                     }
                     Vector3 forwardVectorLocal = Vector3.TransformNormal(forwardVector, Matrix.Transpose(SystemCoordinator.ReferenceBasis));
                     Vector3 vectorToAlignLocal = Vector3.TransformNormal(vectorToAlign, Matrix.Transpose(SystemCoordinator.ReferenceBasis));
-                    Quaternion quaternion = Quaternion.CreateFromTwoVectors(forwardVectorLocal, vectorToAlignLocal);
+                    forwardVectorLocal = Vector3.Normalize(forwardVectorLocal);
+                    vectorToAlignLocal = Vector3.Normalize(vectorToAlignLocal);
+                    float dot = Vector3.Dot(forwardVectorLocal, vectorToAlignLocal);
+                    float epsilon = 1e-6f;
+                    Vector3 rotationVector;
+                    if (dot <= -1 + epsilon)
+                    {
+                        rotationVector = Vector3.Normalize(Vector3.CalculatePerpendicularVector(forwardVectorLocal));
+                    }
+                    else if (dot >= 1 - epsilon)
+                    {
+                        rotationVector = Vector3.Zero;
+                    }
+                    else
+                    {
+                        rotationVector = Vector3.Normalize(Vector3.Cross(forwardVectorLocal, vectorToAlignLocal));
+                    }
+                    float rotationAngle = (float)Math.Acos(dot);
+                    Quaternion quaternion = Quaternion.CreateFromAxisAngle(rotationVector, rotationAngle);
                     Matrix alignedMatrixLocal = Matrix.Transform(Matrix.Identity, quaternion);
 
                     float yawError = (float)Math.Atan2(-alignedMatrixLocal.M13, alignedMatrixLocal.M11);
@@ -306,14 +324,24 @@ namespace IngameScript
                     return;
                 }
 
-                Vector3 rotationVector = Vector3.Cross(currentVectorToAlign, accelVector);
-
-                if (rotationVector.Length() <= 1e-6f)
+                Vector3 accelDir = Vector3.Normalize(accelVector);
+                currentVectorToAlign = Vector3.Normalize(currentVectorToAlign);
+                float dot = Vector3.Dot(accelDir, currentVectorToAlign);
+                Vector3 rotationVector;
+                float epsilon = 1e-6f;
+                
+                if (dot <= -1 + epsilon)
                 {
-                    rotationVector = Vector3.CalculatePerpendicularVector(currentVectorToAlign);
+                    rotationVector = Vector3.Normalize(Vector3.CalculatePerpendicularVector(currentVectorToAlign));
                 }
-
-                rotationVector = Vector3.Normalize(rotationVector);
+                else if (dot >= 1 - epsilon)
+                {
+                    rotationVector = Vector3.Zero;
+                }
+                else
+                {
+                    rotationVector = Vector3.Normalize(Vector3.Cross(currentVectorToAlign, accelDir));
+                }
 
                 float targetForwardAccel = currentForwardAccel < minForwardAccel ? minForwardAccel : maxForwardAccel;
 
