@@ -25,7 +25,7 @@ namespace IngameScript
         public class MissileControl
         {
             public int ID { get; private set; }
-            public MissileStage Stage { get; private set; }
+            public MissileStage Stage { get; private set; } = MissileStage.Idle;
 
             private List<IMyGyro> _gyros = new List<IMyGyro>();
             private IMyShipConnector _connector;
@@ -60,16 +60,11 @@ namespace IngameScript
                 _type = type;
                 _guidanceType = guidanceType;
                 _payloadType = payload;
+                GetBlocks();
                 Init();
-
-                Stage = MissileStage.Idle;
-                _pitchController = new PIDControl(1.0f, 0, 0.2f);
-                _yawController = new PIDControl(1.0f, 0, 0.2f);
-
-                _missileGuidance = new MissileGuidance(_maxAccel, 0.75f, 3.5f, maxSpeed: 100);
             }
 
-            public void GetBlocks()
+            private void GetBlocks()
             {
                 GTS.GetBlocksOfType(_thrusters, b => b.IsSameConstructAs(MePB) && b.CustomName.Contains("Thruster"));
                 if (_thrusters.Count == 0)
@@ -97,9 +92,8 @@ namespace IngameScript
                 }
             }
 
-            public void Init()
+            private void Init()
             {
-                GetBlocks();
                 _thrusterInfos.Clear();
                 _maxThrust.Clear();
 
@@ -153,6 +147,11 @@ namespace IngameScript
                 _maxForwardAccel = _maxThrust[Direction.Forward] / _missileMass;
                 _maxRadialAccel = _maxThrust[Direction.Right] / _missileMass;
                 _maxAccel = (float)Math.Sqrt(_maxForwardAccel * _maxForwardAccel + _maxRadialAccel * _maxRadialAccel);
+
+                _pitchController = new PIDControl(1.0f, 0, 0.2f);
+                _yawController = new PIDControl(1.0f, 0, 0.2f);
+
+                _missileGuidance = new MissileGuidance(_maxAccel, 0.75f, 3.5f, maxSpeed: 100);
             }
 
             public void Run(DateTime time)

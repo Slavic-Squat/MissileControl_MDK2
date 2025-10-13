@@ -30,11 +30,13 @@ namespace IngameScript
             private HashSet<IMyBroadcastListener> _broadcastListeners = new HashSet<IMyBroadcastListener>();
             private IMyUnicastListener _unicastListener;
             private Dictionary<string, Queue<MyIGCMessage>> _messages = new Dictionary<string, Queue<MyIGCMessage>>();
+            private long _secureBroadcastPIN;
 
-            public CommunicationHandler(int iD)
+            public CommunicationHandler(int iD, long secureBroadcastPIN)
             {
                 ID = iD;
                 _unicastListener = IGCS.UnicastListener;
+                _secureBroadcastPIN = secureBroadcastPIN;
             }
 
             public void Recieve()
@@ -73,27 +75,44 @@ namespace IngameScript
                 }
             }
 
-            public void SendBroadcast(byte[] data, string tag)
+            public void SendBroadcast(byte[] data, string tag, bool secure)
             {
                 string dataString = Convert.ToBase64String(data);
+                if (secure)
+                {
+                    tag = $"{_secureBroadcastPIN}_{tag}";
+                }
                 IGCS.SendBroadcastMessage(tag, dataString);
             }
 
-            public void SendUnicast(byte[] data, long targetAddress, string tag)
+            public void SendUnicast(byte[] data, long targetAddress, string tag, bool secure)
             {
                 string dataString = Convert.ToBase64String(data);
+                if (secure)
+                {
+                    tag = $"{_secureBroadcastPIN}_{tag}";
+                }
                 IGCS.SendUnicastMessage(targetAddress, tag, dataString);
             }
 
-            public void RegisterBroadcastListener(string tag)
+            public void RegisterBroadcastListener(string tag, bool secure)
             {
+                string tagOriginal = tag;
+                if (secure)
+                {
+                    tag = $"{_secureBroadcastPIN}_{tag}";
+                }
                 var listener = IGCS.RegisterBroadcastListener(tag);
                 _broadcastListeners.Add(listener);
-                RegisterTag(tag);
+                RegisterTag(tagOriginal, secure);
             }
 
-            public void UnregisterBroadcastListener(string tag)
+            public void UnregisterBroadcastListener(string tag, bool secure)
             {
+                if (secure)
+                {
+                    tag = $"{_secureBroadcastPIN}_{tag}";
+                }
                 List<IMyBroadcastListener> toRemove = _broadcastListeners.Where(l => l.Tag == tag).ToList();
                 foreach (var listener in toRemove)
                 {
@@ -102,28 +121,45 @@ namespace IngameScript
                 }
             }
 
-            public void RegisterTag(string tag)
+            public void RegisterTag(string tag, bool secure)
             {
+                if (secure)
+                {
+                    tag = $"{_secureBroadcastPIN}_{tag}";
+                }
                 if (!_messages.ContainsKey(tag))
                 {
                     _messages[tag] = new Queue<MyIGCMessage>();
                 }
             }
 
-            public void UnregisterTag(string tag)
+            public void UnregisterTag(string tag, bool secure)
             {
+                string tagOriginal = tag;
+                if (secure)
+                {
+                    tag = $"{_secureBroadcastPIN}_{tag}";
+                }
                 _messages.Remove(tag);
-                UnregisterBroadcastListener(tag);
+                UnregisterBroadcastListener(tagOriginal, secure);
             }
 
-            public bool HasMessage(string tag)
+            public bool HasMessage(string tag, bool secure)
             {
+                if (secure)
+                {
+                    tag = $"{_secureBroadcastPIN}_{tag}";
+                }
                 return _messages.ContainsKey(tag) && _messages[tag].Count > 0;
             }
 
-            public bool TryRetrieveMessage(string tag, out MyIGCMessage message)
+            public bool TryRetrieveMessage(string tag, bool secure, out MyIGCMessage message)
             {
-                if (HasMessage(tag))
+                if (secure)
+                {
+                    tag = $"{_secureBroadcastPIN}_{tag}";
+                }
+                if (HasMessage(tag, secure))
                 {
                     message = _messages[tag].Dequeue();
                     return true;
