@@ -155,11 +155,12 @@ namespace IngameScript
 
             public bool TryRetrieveMessage(string tag, bool secure, out MyIGCMessage message)
             {
+                string tagOriginal = tag;
                 if (secure)
                 {
                     tag = $"{_secureBroadcastPIN}_{tag}";
                 }
-                if (HasMessage(tag, secure))
+                if (HasMessage(tagOriginal, secure))
                 {
                     message = _messages[tag].Dequeue();
                     return true;
