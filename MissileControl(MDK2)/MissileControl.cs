@@ -380,6 +380,18 @@ namespace IngameScript
             {
                 _launcher = launcher;
             }
+
+            public void Abort()
+            {
+                if (Stage > MissileStage.Launching)
+                {
+                    foreach (IMyWarhead warhead in _payload)
+                    {
+                        warhead.IsArmed = true;
+                        warhead.Detonate();
+                    }
+                }
+            }
         }
     }
 }

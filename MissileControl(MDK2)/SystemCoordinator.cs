@@ -64,6 +64,7 @@ namespace IngameScript
                 _commands.Add("OFF", (args) => TurnOff());
                 _commands.Add("ACTIVATE", (args) => ActivateMissile(args[0], args[1]));
                 _commands.Add("LAUNCH", (args) => LaunchMissile());
+                _commands.Add("ABORT", (args) => AbortMissile());
             }
 
             private void Init()
@@ -134,6 +135,20 @@ namespace IngameScript
                     }
                 }
 
+                while (CommunicationHandler.HasMessage("Commands"))
+                {
+                    MyIGCMessage msg;
+                    if (CommunicationHandler.TryRetrieveMessage("Commands", out msg))
+                    {
+                        if (msg.Source != LauncherAddress) continue;
+                        object msgObject = Deserializer.Deserialize(msg.Data as string);
+                        if (msgObject is string)
+                        {
+                            Command((string)msgObject);
+                        }
+                    }
+                }
+
                 if (MissileControl.Stage > MissileStage.Idle)
                 {
                     MissileControl.UpdateTarget(Target);
@@ -186,6 +201,11 @@ namespace IngameScript
             public void LaunchMissile()
             {
                 MissileControl.Launch();
+            }
+
+            public void AbortMissile()
+            {
+                MissileControl.Abort();
             }
         }
     }
