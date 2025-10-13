@@ -31,8 +31,6 @@ namespace IngameScript
 
         public static int DebugCounter { get; set; } = 0;
 
-        public static DebugAPI DebugDraw { get; private set; }
-
         public Program()
         {
             Runtime.UpdateFrequency = UpdateFrequency.None;
@@ -43,8 +41,6 @@ namespace IngameScript
             RuntimeInfo = Runtime;
 
             _systemCoordinator = new SystemCoordinator();
-
-            DebugDraw = new DebugAPI(this, true);
         }
 
         public void Save()

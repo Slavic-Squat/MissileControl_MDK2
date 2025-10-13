@@ -34,7 +34,6 @@ namespace IngameScript
             public CommunicationHandler CommunicationHandler { get; private set; }
             public CommandHandler CommandHandler { get; private set; }
             public MissileControl MissileControl { get; private set; }
-            public MyIni Config { get; private set; }
 
             public long LauncherAddress { get; private set; }
             public MissileStage Stage => MissileControl.Stage;
@@ -52,13 +51,11 @@ namespace IngameScript
             {
                 SystemTime = DateTime.Now;
                 GetBlocks();
+                Init();
 
                 CommunicationHandler = new CommunicationHandler(0);
                 CommandHandler = new CommandHandler(MePB, _commands);
-                MissileControl = new MissileControl(0);
-                Config = new MyIni();
-
-                Init();
+                
                 CommunicationHandler.RegisterTag("LauncherInfo");
                 CommunicationHandler.RegisterTag("TargetInfo");
                 CommunicationHandler.RegisterTag("Commands");
@@ -69,32 +66,27 @@ namespace IngameScript
                 _commands.Add("LAUNCH", (args) => LaunchMissile());
             }
 
-            public void Init()
+            private void Init()
             {
+                MyIni Config = new MyIni();
                 Config.TryParse(_storageBlock.CustomData);
                 Config.Set("Config", "MissileID", SelfID);
                 Config.Set("Config", "MissileAddress", IGCS.Me);
-                MissileType type;
-                Enum.TryParse(Config.Get("Config", "Type").ToString(), out type);
-                Type = type;
-                Config.Set("Config", "Type", Type.ToString());
-                MissileGuidanceType guidanceType;
-                Enum.TryParse(Config.Get("Config", "GuidanceType").ToString(), out guidanceType);
-                GuidanceType = guidanceType;
-                Config.Set("Config", "GuidanceType", GuidanceType.ToString());
-                MissilePayload payload;
-                Enum.TryParse(Config.Get("Config", "Payload").ToString(), out payload);
-                Payload = payload;
-                Config.Set("Config", "Payload", Payload.ToString());
+                Type = GetMissileType(Config.Get("Config", "Type").ToString());
+                Config.Set("Config", "Type", GetName(Type));
+                GuidanceType = GetMissileGuidanceType(Config.Get("Config", "GuidanceType").ToString());
+                Config.Set("Config", "GuidanceType", GetName(GuidanceType));
+                Payload = GetMissilePayload(Config.Get("Config", "Payload").ToString());
+                Config.Set("Config", "Payload", GetName(Payload));
+
+                float missileMass = Config.Get("Config", "Mass").ToSingle(10000);
+                Config.Set("Config", "Mass", missileMass.ToString());
 
                 _storageBlock.CustomData = Config.ToString();
-
-                MissileControl.Type = Type;
-                MissileControl.GuidanceType = GuidanceType;
-                MissileControl.Payload = Payload;
+                MissileControl = new MissileControl(0, missileMass, Type, GuidanceType, Payload);
             }
 
-            public void GetBlocks()
+            private void GetBlocks()
             {
                 List<IMyTerminalBlock> tBlocks = new List<IMyTerminalBlock>();
                 GTS.GetBlocksOfType(tBlocks, b => b.IsSameConstructAs(MePB) && b.CustomData.Contains("[Config]"));
@@ -144,8 +136,8 @@ namespace IngameScript
 
                 if (MissileControl.Stage > MissileStage.Idle)
                 {
-                    MissileControl.Target = Target;
-                    MissileControl.Launcher = Launcher;
+                    MissileControl.UpdateTarget(Target);
+                    MissileControl.UpdateLauncher(Launcher);
                     MissileControl.Run(SystemTime);
 
                     MissileInfo missileInfo = new MissileInfo(Launcher.EntityID, Target.EntityID, Stage, Type, GuidanceType, Payload);
