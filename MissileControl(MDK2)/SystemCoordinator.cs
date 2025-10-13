@@ -65,27 +65,27 @@ namespace IngameScript
                 _commands.Add("SYNC_CLOCK", (args) => SyncClock(args[0]));
                 _commands.Add("ON", (args) => TurnOn());
                 _commands.Add("OFF", (args) => TurnOff());
-                _commands.Add("ACTIVATE", (args) => ActivateMissile(args[0]));
+                _commands.Add("ACTIVATE", (args) => ActivateMissile(args[0], args[1]));
                 _commands.Add("LAUNCH", (args) => LaunchMissile());
             }
 
             public void Init()
             {
                 Config.TryParse(_storageBlock.CustomData);
-                Config.Set("Data", "MissileID", SelfID);
-                Config.Set("Data", "MissileAddress", IGCS.Me);
+                Config.Set("Config", "MissileID", SelfID);
+                Config.Set("Config", "MissileAddress", IGCS.Me);
                 MissileType type;
-                Enum.TryParse(Config.Get("Data", "Type").ToString(), out type);
+                Enum.TryParse(Config.Get("Config", "Type").ToString(), out type);
                 Type = type;
-                Config.Set("Data", "Type", Type.ToString());
+                Config.Set("Config", "Type", Type.ToString());
                 MissileGuidanceType guidanceType;
-                Enum.TryParse(Config.Get("Data", "GuidanceType").ToString(), out guidanceType);
+                Enum.TryParse(Config.Get("Config", "GuidanceType").ToString(), out guidanceType);
                 GuidanceType = guidanceType;
-                Config.Set("Data", "GuidanceType", GuidanceType.ToString());
+                Config.Set("Config", "GuidanceType", GuidanceType.ToString());
                 MissilePayload payload;
-                Enum.TryParse(Config.Get("Data", "Payload").ToString(), out payload);
+                Enum.TryParse(Config.Get("Config", "Payload").ToString(), out payload);
                 Payload = payload;
-                Config.Set("Data", "Payload", Payload.ToString());
+                Config.Set("Config", "Payload", Payload.ToString());
 
                 _storageBlock.CustomData = Config.ToString();
 
@@ -97,7 +97,7 @@ namespace IngameScript
             public void GetBlocks()
             {
                 List<IMyTerminalBlock> tBlocks = new List<IMyTerminalBlock>();
-                GTS.GetBlocksOfType(tBlocks, b => b.IsSameConstructAs(MePB) && b.CustomData.Contains("[Data]"));
+                GTS.GetBlocksOfType(tBlocks, b => b.IsSameConstructAs(MePB) && b.CustomData.Contains("[Config]"));
                 if (tBlocks.Count == 0) throw new Exception("No block with [Data] in CustomData found on this construct.");
                 _storageBlock = tBlocks[0];
 
@@ -149,9 +149,12 @@ namespace IngameScript
                     MissileControl.Run(SystemTime);
 
                     MissileInfo missileInfo = new MissileInfo(Launcher.EntityID, Target.EntityID, Stage, Type, GuidanceType, Payload);
+                    MissileInfoLite missileInfoLite = new MissileInfoLite(Launcher.EntityID);
                     Self = new EntityInfo(SelfID, ReferencePosition, ReferenceVelocity, SystemTime, missileInfo);
+                    EntityInfo selfLite = new EntityInfo(SelfID, ReferencePosition, ReferenceVelocity, SystemTime, missileInfoLite);
 
                     CommunicationHandler.SendUnicast(Self.Serialize(), LauncherAddress, "MyMissiles");
+                    CommunicationHandler.SendBroadcast(selfLite.Serialize(), "AllMissiles");
                 }                
             }
 
@@ -160,12 +163,12 @@ namespace IngameScript
                 CommandHandler.RunCommands(command);
             }
 
-            public void SyncClock(string timeString)
+            public void SyncClock(string timeStringTicks)
             {
-                DateTime time;
-                if (DateTime.TryParse(timeString, out time))
+                long timeTicks;
+                if (long.TryParse(timeStringTicks, out timeTicks))
                 {
-                    SystemTime = time;
+                    SystemTime = new DateTime(timeTicks);
                 }
             }
 
@@ -179,11 +182,12 @@ namespace IngameScript
                 RuntimeInfo.UpdateFrequency = UpdateFrequency.None;
             }
 
-            public void ActivateMissile(string launcherAddressString)
+            public void ActivateMissile(string launcherAddressString, string timeStringTicks)
             {
                 long launcherAddress;
                 if (!long.TryParse(launcherAddressString, out launcherAddress)) return;
                 LauncherAddress = launcherAddress;
+                SyncClock(timeStringTicks);
                 MissileControl.Activate();
             }
 
