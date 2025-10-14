@@ -260,6 +260,7 @@ namespace IngameScript
                         rotationVector = Vector3.Cross(forwardVectorLocal, vectorToAlignLocal);
                         rotationVector = rotationVector == Vector3.Zero ? Vector3.Zero : Vector3.Normalize(rotationVector);
                     }
+                    dot = MathHelper.Clamp(dot, -1f, 1f);
                     float rotationAngle = (float)Math.Acos(dot);
                     Quaternion quaternion = Quaternion.CreateFromAxisAngle(rotationVector, rotationAngle);
                     Matrix alignedMatrixLocal = Matrix.Transform(Matrix.Identity, quaternion);
@@ -348,8 +349,8 @@ namespace IngameScript
 
                 float targetForwardAccel = currentForwardAccel < minForwardAccel ? minForwardAccel : maxForwardAccel;
 
-                float currentAccelAngle = (float)Math.Acos(currentForwardAccel / accelMag);
-                float targetAccelAngle = (float)Math.Acos(targetForwardAccel / accelMag);
+                float currentAccelAngle = accelMag == 0 ? 0 : (float)Math.Acos(currentForwardAccel / accelMag);
+                float targetAccelAngle = accelMag == 0 ? 0 : (float)Math.Acos(targetForwardAccel / accelMag);
                 float rotationAngle = targetAccelAngle - currentAccelAngle;
 
                 Quaternion quaternion = Quaternion.CreateFromAxisAngle(rotationVector, rotationAngle);

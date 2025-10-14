@@ -91,15 +91,15 @@ namespace IngameScript
 
                 CommandHandler = new CommandHandler(MePB, _commands);
 
-                CommunicationHandler.RegisterTag("MyLauncherInfo", true);
-                CommunicationHandler.RegisterTag("MyTargetInfo", true);
-                CommunicationHandler.RegisterTag("MyCommands", true);
-                _commands.Add("SYNC_CLOCK", (args) => SyncClock(args[0]));
-                _commands.Add("ON", (args) => TurnOn());
-                _commands.Add("OFF", (args) => TurnOff());
-                _commands.Add("ACTIVATE", (args) => ActivateMissile(args[0], args[1]));
-                _commands.Add("LAUNCH", (args) => LaunchMissile());
-                _commands.Add("ABORT", (args) => AbortMissile());
+                CommunicationHandler.RegisterTag("MyMissileLauncherInfo", true);
+                CommunicationHandler.RegisterTag("MyMissileTargetInfo", true);
+                CommunicationHandler.RegisterTag("MyMissileCommands", true);
+                _commands["SYNC_CLOCK"] = (args) => SyncClock(args[0]);
+                _commands["ON"] = (args) => TurnOn();
+                _commands["OFF"] = (args) => TurnOff();
+                _commands["ACTIVATE"] = (args) => ActivateMissile(args[0], args[1]);
+                _commands["LAUNCH"] = (args) => LaunchMissile();
+                _commands["ABORT"] = (args) => AbortMissile();
             }
 
             private void GetBlocks()
@@ -122,10 +122,10 @@ namespace IngameScript
                 CommunicationHandler.Recieve();
                 CommandHandler.RunCustomDataCommands();
 
-                while (CommunicationHandler.HasMessage("MyLauncherInfo", true))
+                while (CommunicationHandler.HasMessage("MyMissileLauncherInfo", true))
                 {
                     MyIGCMessage msg;
-                    if (CommunicationHandler.TryRetrieveMessage("MyLauncherInfo", true, out msg))
+                    if (CommunicationHandler.TryRetrieveMessage("MyMissileLauncherInfo", true, out msg))
                     {
                         if (msg.Source != LauncherAddress) continue;
                         object msgObject = Deserializer.Deserialize(msg.Data as string);
@@ -136,10 +136,10 @@ namespace IngameScript
                     }
                 }
 
-                while (CommunicationHandler.HasMessage("MyTargetInfo", true))
+                while (CommunicationHandler.HasMessage("MyMissileTargetInfo", true))
                 {
                     MyIGCMessage msg;
-                    if (CommunicationHandler.TryRetrieveMessage("MyTargetInfo", true, out msg))
+                    if (CommunicationHandler.TryRetrieveMessage("MyMissileTargetInfo", true, out msg))
                     {
                         if (msg.Source != LauncherAddress) continue;
                         object msgObject = Deserializer.Deserialize(msg.Data as string);
@@ -150,10 +150,10 @@ namespace IngameScript
                     }
                 }
 
-                while (CommunicationHandler.HasMessage("MyCommands", true))
+                while (CommunicationHandler.HasMessage("MyMissileCommands", true))
                 {
                     MyIGCMessage msg;
-                    if (CommunicationHandler.TryRetrieveMessage("MyCommands", true, out msg))
+                    if (CommunicationHandler.TryRetrieveMessage("MyMissileCommands", true, out msg))
                     {
                         if (msg.Source != LauncherAddress) continue;
                         object msgObject = Deserializer.Deserialize(msg.Data as string);
@@ -185,7 +185,7 @@ namespace IngameScript
                 CommandHandler.RunCommands(command);
             }
 
-            public void SyncClock(string timeStringTicks)
+            private void SyncClock(string timeStringTicks)
             {
                 long timeTicks;
                 if (long.TryParse(timeStringTicks, out timeTicks))
@@ -194,17 +194,17 @@ namespace IngameScript
                 }
             }
 
-            public void TurnOn()
+            private void TurnOn()
             {
                 RuntimeInfo.UpdateFrequency = UpdateFrequency.Update1;
             }
 
-            public void TurnOff()
+            private void TurnOff()
             {
                 RuntimeInfo.UpdateFrequency = UpdateFrequency.None;
             }
 
-            public void ActivateMissile(string launcherAddressString, string timeStringTicks)
+            private void ActivateMissile(string launcherAddressString, string timeStringTicks)
             {
                 long launcherAddress;
                 if (!long.TryParse(launcherAddressString, out launcherAddress)) return;
@@ -213,12 +213,12 @@ namespace IngameScript
                 MissileControl.Activate();
             }
 
-            public void LaunchMissile()
+            private void LaunchMissile()
             {
                 MissileControl.Launch();
             }
 
-            public void AbortMissile()
+            private void AbortMissile()
             {
                 MissileControl.Abort();
             }

@@ -44,7 +44,7 @@ namespace IngameScript
                 Vector3 dirToTarget = range == Vector3.Zero ? Vector3.Zero : Vector3.Normalize(range);
 
                 Vector3 relVel = targetVel - missileVel;
-                Vector3 rotationVector = Vector3.Cross(range, relVel) / Vector3.Dot(range, range);
+                Vector3 rotationVector = range == Vector3.Zero ? Vector3.Zero : Vector3.Cross(range, relVel) / Vector3.Dot(range, range);
 
                 float desiredRelAccelMag = MaxAccel;
                 Vector3 desiredRelAccel = dirToTarget * desiredRelAccelMag;
