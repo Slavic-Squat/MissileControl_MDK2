@@ -148,10 +148,10 @@ namespace IngameScript
                 _maxRadialAccel = _maxThrust[Direction.Right] / _missileMass;
                 _maxAccel = (float)Math.Sqrt(_maxForwardAccel * _maxForwardAccel + _maxRadialAccel * _maxRadialAccel);
 
-                _pitchController = new PIDControl(1.0f, 0, 0.2f);
-                _yawController = new PIDControl(1.0f, 0, 0.2f);
+                _pitchController = new PIDControl(2.5f, 0, 1.0f);
+                _yawController = new PIDControl(2.5f, 0, 1.0f);
 
-                _missileGuidance = new MissileGuidance(_maxAccel, 0.75f, 3.5f, maxSpeed: 100);
+                _missileGuidance = new MissileGuidance(_maxAccel, 0.35f, 5f, maxSpeed: 100);
             }
 
             public void Run(DateTime time)
@@ -342,7 +342,7 @@ namespace IngameScript
 
                 float currentAccelAngle = accelMag == 0 ? 0 : (float)Math.Acos(MathHelper.Clamp(currentForwardAccel / accelMag, -1, 1));
                 float targetAccelAngle = accelMag == 0 ? 0 : (float)Math.Acos(MathHelper.Clamp(targetForwardAccel / accelMag, -1, 1));
-                float rotationAngle = targetAccelAngle - currentAccelAngle;
+                float rotationAngle = -1f * (targetAccelAngle - currentAccelAngle);
 
                 Quaternion quaternion = Quaternion.CreateFromAxisAngle(rotationVector, rotationAngle);
                 newVectorToAlign = Vector3.Transform(currentVectorToAlign, quaternion);
