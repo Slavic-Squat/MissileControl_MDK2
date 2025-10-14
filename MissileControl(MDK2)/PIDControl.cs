@@ -45,9 +45,9 @@ namespace IngameScript
 
             public float Run(float input, float timeDelta)
             {
-                if (timeDelta == 0 || input == 0 || input == float.NaN || timeDelta == float.NaN)
+                if (timeDelta == 0 || input == 0 || float.IsNaN(input) || float.IsNaN(timeDelta))
                 {
-                    return input;
+                    return 0;
                 }
 
                 float differencial = (input - _priorValue) / timeDelta;

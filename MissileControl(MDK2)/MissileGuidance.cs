@@ -39,29 +39,30 @@ namespace IngameScript
 
             public Vector3 CalculateTotalAccel(Vector3 targetPos, Vector3 targetVel, Vector3 missilePos, Vector3 missileVel)
             {
-                Vector3 missileVelDir = missileVel == Vector3.Zero ? Vector3.Zero : Vector3.Normalize(missileVel);
+                float missileSpeed = missileVel.Length();
+                Vector3 missileVelDir = missileSpeed == 0 ? Vector3.Zero : missileVel / missileSpeed;
                 Vector3 range = targetPos - missilePos;
-                Vector3 dirToTarget = range == Vector3.Zero ? Vector3.Zero : Vector3.Normalize(range);
+                float dist = range.Length();
+                Vector3 dirToTarget = dist == 0 ? Vector3.Zero : range / dist;
 
                 Vector3 relVel = targetVel - missileVel;
-                Vector3 rotationVector = range == Vector3.Zero ? Vector3.Zero : Vector3.Cross(range, relVel) / Vector3.Dot(range, range);
+                Vector3 rotationVector = dist == 0 ? Vector3.Zero : Vector3.Cross(range, relVel) / (dist * dist);
 
                 float desiredRelAccelMag = MaxAccel;
                 Vector3 desiredRelAccel = dirToTarget * desiredRelAccelMag;
 
                 float alignment = Vector3.Dot(missileVelDir, dirToTarget);
-                if (missileVel.Length() > 0.9f * MaxSpeed && alignment > 0.75f)
+                if (missileSpeed > 0.98f * MaxSpeed && alignment > 0.75f)
                 {
                     desiredRelAccel = Vector3.Zero;
                 }
 
                 Vector3 proNavAccel = M * desiredRelAccel - N * Vector3.Cross(rotationVector, relVel) + Vector3.Cross(rotationVector, Vector3.Cross(rotationVector, range));
-                Vector3 proNavAccelDir = proNavAccel == Vector3.Zero ? Vector3.Zero : Vector3.Normalize(proNavAccel);
                 float proNavAccelMag = proNavAccel.Length();
 
                 if (proNavAccelMag > MaxAccel)
                 {
-                    proNavAccel = proNavAccelDir * MaxAccel;
+                    proNavAccel = proNavAccel / proNavAccelMag * MaxAccel;
                 }
 
                 return proNavAccel;
