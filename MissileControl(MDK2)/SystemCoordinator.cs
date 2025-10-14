@@ -177,7 +177,12 @@ namespace IngameScript
 
                     CommunicationHandler.SendUnicast(Self.Serialize(), LauncherAddress, "MyMissiles", true);
                     CommunicationHandler.SendBroadcast(selfLite.Serialize(), "AllMissiles", false);
-                }                
+                }
+                
+                if (MissileControl.Stage >= MissileStage.Flying && !CommunicationHandler.CanReach(LauncherAddress))
+                {
+                    AbortMissile();
+                }
             }
 
             public void Command(string command)
