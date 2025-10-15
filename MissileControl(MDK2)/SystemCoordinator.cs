@@ -80,13 +80,31 @@ namespace IngameScript
                 Config.Set("Config", "Payload", GetName(Payload));
 
                 float missileMass = Config.Get("Config", "Mass").ToSingle(10000);
-                Config.Set("Config", "Mass", missileMass.ToString());
+                Config.Set("Config", "Mass", missileMass);
 
                 long secureBroadcastPIN = Config.Get("Config", "SecureBroadcastPIN").ToInt64(123456);
-                Config.Set("Config", "SecureBroadcastPIN", secureBroadcastPIN.ToString());
+                Config.Set("Config", "SecureBroadcastPIN", secureBroadcastPIN);
+
+                float maxSpeed = Config.Get("Config", "MaxSpeed").ToSingle(100);
+                Config.Set("Config", "MaxSpeed", maxSpeed);
+
+                float m = Config.Get("Config", "M").ToSingle(0.35f);
+                Config.Set("Config", "M", m);
+
+                float n = Config.Get("Config", "N").ToSingle(5f);
+                Config.Set("Config", "N", n);
+
+                float kp = Config.Get("Config", "Kp").ToSingle(2.5f);
+                Config.Set("Config", "Kp", kp);
+
+                float ki = Config.Get("Config", "Ki").ToSingle(0.1f);
+                Config.Set("Config", "Ki", ki);
+
+                float kd = Config.Get("Config", "Kd").ToSingle(1.2f);
+                Config.Set("Config", "Kd", kd);
 
                 _storageBlock.CustomData = Config.ToString();
-                MissileControl = new MissileControl(0, missileMass, Type, GuidanceType, Payload);
+                MissileControl = new MissileControl(0, missileMass, maxSpeed, Type, GuidanceType, Payload, m, n, kp, ki, kd);
                 CommunicationHandler = new CommunicationHandler(0, secureBroadcastPIN);
 
                 CommandHandler = new CommandHandler(MePB, _commands);

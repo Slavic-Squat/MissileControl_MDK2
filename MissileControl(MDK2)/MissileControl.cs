@@ -40,6 +40,12 @@ namespace IngameScript
             private PIDControl _yawController;
 
             private float _missileMass;
+            private float _maxSpeed;
+            private float _m;
+            private float _n;
+            private float _kp;
+            private float _ki;
+            private float _kd;
             private float _maxForwardAccel;
             private float _maxRadialAccel;
             private float _maxAccel;
@@ -54,7 +60,7 @@ namespace IngameScript
             private List<ThrusterInfo> _thrusterInfos = new List<ThrusterInfo>();
             private Dictionary<Direction, float> _maxThrust = new Dictionary<Direction, float>();
 
-            public MissileControl(int ID, float missileMass, MissileType type, MissileGuidanceType guidanceType, MissilePayload payload)
+            public MissileControl(int ID, float missileMass, float maxSpeed, MissileType type, MissileGuidanceType guidanceType, MissilePayload payload, float m, float n, float kp, float ki, float kd)
             {
                 this.ID = ID;
                 _missileMass = missileMass;
@@ -149,10 +155,10 @@ namespace IngameScript
                 _maxRadialAccel = _maxThrust[Direction.Right] / _missileMass;
                 _maxAccel = (float)Math.Sqrt(_maxForwardAccel * _maxForwardAccel + _maxRadialAccel * _maxRadialAccel);
 
-                _pitchController = new PIDControl(2.5f, 0, 1.0f);
-                _yawController = new PIDControl(2.5f, 0, 1.0f);
+                _pitchController = new PIDControl(_kp, _ki, _kd);
+                _yawController = new PIDControl(_kp, _ki, _kd);
 
-                _missileGuidance = new MissileGuidance(_maxAccel, 0.35f, 5f, maxSpeed: 100);
+                _missileGuidance = new MissileGuidance(_maxAccel, _m, _n, maxSpeed: _maxSpeed);
             }
 
             public void Run(DateTime time)
