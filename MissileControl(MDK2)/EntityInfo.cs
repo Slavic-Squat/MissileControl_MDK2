@@ -197,7 +197,7 @@ namespace IngameScript
 
                 Vector3 vel = new Vector3(xVel, yVel, zVel);
 
-                double timeRecorded = BitConverter.ToInt64(data, index);
+                double timeRecorded = BitConverter.ToDouble(data, index);
                 index += 8;
 
                 switch (subType)
