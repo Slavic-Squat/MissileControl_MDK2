@@ -64,9 +64,15 @@ namespace IngameScript
             {
                 this.ID = ID;
                 _missileMass = missileMass;
+                _maxSpeed = maxSpeed;
                 _type = type;
                 _guidanceType = guidanceType;
                 _payloadType = payload;
+                _m = m;
+                _n = n;
+                _kp = kp;
+                _ki = ki;
+                _kd = kd;
                 GetBlocks();
                 Init();
             }
