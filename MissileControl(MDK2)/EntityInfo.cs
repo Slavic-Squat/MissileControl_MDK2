@@ -130,7 +130,7 @@ namespace IngameScript
                 {
                     (byte)SerializedTypes.EntityInfo,
                     (byte)Type,
-                    (byte)SubType
+                    (byte)SubType,
                 };
 
                 bytes.AddRange(BitConverter.GetBytes(EntityID));
