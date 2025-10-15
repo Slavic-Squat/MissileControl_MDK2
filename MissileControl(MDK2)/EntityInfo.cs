@@ -29,12 +29,12 @@ namespace IngameScript
             public EntityInfoSubType SubType { get; private set; }
             public Vector3 Position { get; private set;  }
             public Vector3 Velocity { get; private set; }
-            public DateTime TimeRecorded { get; private set; }
+            public double TimeRecorded { get; private set; }
             public MissileInfoLite? MissileInfoLite { get; private set; }
             public MissileInfo? MissileInfo { get; private set; }
             public bool IsValid { get; private set; }
 
-            public EntityInfo(long entityID, Vector3 position, Vector3 velocity, DateTime timeRecorded)
+            public EntityInfo(long entityID, Vector3 position, Vector3 velocity, double timeRecorded)
             {
                 EntityID = entityID;
                 Type = EntityType.Target;
@@ -47,7 +47,7 @@ namespace IngameScript
                 IsValid = true;
             }
 
-            public EntityInfo(MyDetectedEntityInfo entityInfo, DateTime timeRecorded)
+            public EntityInfo(MyDetectedEntityInfo entityInfo, double timeRecorded)
             {
                 EntityID = entityInfo.EntityId;
                 Type = EntityType.Target;
@@ -60,7 +60,7 @@ namespace IngameScript
                 IsValid = true;
             }
 
-            public EntityInfo(long entityID, Vector3 position, Vector3 velocity, DateTime timeRecorded, MissileInfoLite missileInfoLite)
+            public EntityInfo(long entityID, Vector3 position, Vector3 velocity, double timeRecorded, MissileInfoLite missileInfoLite)
             {
                 EntityID = entityID;
                 Type = EntityType.Missile;
@@ -73,7 +73,7 @@ namespace IngameScript
                 IsValid = true;
             }
 
-            public EntityInfo(long entityID, Vector3 position, Vector3 velocity, DateTime timeRecorded, MissileInfo missileInfo)
+            public EntityInfo(long entityID, Vector3 position, Vector3 velocity, double timeRecorded, MissileInfo missileInfo)
             {
                 EntityID = entityID;
                 Type = EntityType.Missile;
@@ -143,7 +143,7 @@ namespace IngameScript
                 bytes.AddRange(BitConverter.GetBytes(Velocity.Y));
                 bytes.AddRange(BitConverter.GetBytes(Velocity.Z));
 
-                bytes.AddRange(BitConverter.GetBytes(TimeRecorded.Ticks));
+                bytes.AddRange(BitConverter.GetBytes(TimeRecorded));
 
                 switch (SubType)
                 {
@@ -197,10 +197,8 @@ namespace IngameScript
 
                 Vector3 vel = new Vector3(xVel, yVel, zVel);
 
-                long ticks = BitConverter.ToInt64(data, index);
+                double timeRecorded = BitConverter.ToInt64(data, index);
                 index += 8;
-
-                DateTime timeRecorded = new DateTime(ticks);
 
                 switch (subType)
                 {

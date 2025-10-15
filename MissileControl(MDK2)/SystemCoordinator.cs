@@ -24,7 +24,7 @@ namespace IngameScript
     {
         public class SystemCoordinator
         {
-            public static DateTime SystemTime { get; private set; }
+            public static double SystemTime { get; private set; }
             public static IMyShipController ReferenceController { get; private set; }
             public static Matrix ReferenceBasis => ReferenceController.WorldMatrix;
             public static Vector3 ReferencePosition => ReferenceController.GetPosition();
@@ -50,7 +50,6 @@ namespace IngameScript
             private Dictionary<string, Action<string[]>> _commands = new Dictionary<string, Action<string[]>>();
             public SystemCoordinator()
             {
-                SystemTime = DateTime.Now;
                 GetBlocks();
                 Init();
             }
@@ -135,7 +134,7 @@ namespace IngameScript
 
             public void Run()
             {
-                SystemTime += RuntimeInfo.TimeSinceLastRun;
+                SystemTime += RuntimeInfo.TimeSinceLastRun.TotalSeconds;
                 DebugEcho(SystemTime.ToString());
                 CommunicationHandler.Recieve();
                 CommandHandler.RunCustomDataCommands();
@@ -208,12 +207,12 @@ namespace IngameScript
                 return CommandHandler.RunCommands(command);
             }
 
-            private bool SyncClock(string timeStringTicks)
+            private bool SyncClock(string timeString)
             {
-                long timeTicks;
-                if (long.TryParse(timeStringTicks, out timeTicks))
+                double time;
+                if (double.TryParse(timeString, out time))
                 {
-                    SystemTime = new DateTime(timeTicks);
+                    SystemTime = time;
                     return true;
                 }
                 return false;

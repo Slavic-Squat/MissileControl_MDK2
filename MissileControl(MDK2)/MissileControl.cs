@@ -25,7 +25,7 @@ namespace IngameScript
         public class MissileControl
         {
             public int ID { get; private set; }
-            public DateTime Time { get; private set; }
+            public double Time { get; private set; }
             public MissileStage Stage { get; private set; } = MissileStage.Idle;
 
             private List<IMyGyro> _gyros = new List<IMyGyro>();
@@ -33,7 +33,7 @@ namespace IngameScript
             private List<IMyWarhead> _payload = new List<IMyWarhead>();
             private List<IMyThrust> _thrusters = new List<IMyThrust>();
 
-            private DateTime _lastRunTime;
+            private double _lastRunTime;
 
             private MissileGuidance _missileGuidance;
             private PIDControl _pitchController;
@@ -167,10 +167,10 @@ namespace IngameScript
                 _missileGuidance = new MissileGuidance(_maxAccel, _m, _n, maxSpeed: _maxSpeed);
             }
 
-            public void Run(DateTime time)
+            public void Run(double time)
             {
                 Time = time;
-                if (_lastRunTime == DateTime.MinValue)
+                if (_lastRunTime == 0)
                 {
                     _lastRunTime = time;
                     return;
@@ -178,7 +178,7 @@ namespace IngameScript
 
                 if (Stage > MissileStage.Idle)
                 {
-                    float timeDelta = (float)(time - _lastRunTime).TotalSeconds;
+                    float timeDelta = (float)(time - _lastRunTime);
 
                     Vector3 missilePos = SystemCoordinator.ReferencePosition;
                     Vector3 missileVel = SystemCoordinator.ReferenceVelocity;
@@ -187,12 +187,12 @@ namespace IngameScript
                     Vector3 estimatedLauncherPos = _launcher.Position;
                     if (_target.TimeRecorded < time)
                     {
-                        float secSinceLastUpdate = (float)(time - _target.TimeRecorded).TotalSeconds;
+                        float secSinceLastUpdate = (float)(time - _target.TimeRecorded);
                         estimatedTargetPos = _target.Position + _target.Velocity * secSinceLastUpdate;
                     }
                     if (_launcher.TimeRecorded < time)
                     {
-                        float secSinceLastUpdate = (float)(time - _launcher.TimeRecorded).TotalSeconds;
+                        float secSinceLastUpdate = (float)(time - _launcher.TimeRecorded);
                         estimatedLauncherPos = _launcher.Position + _launcher.Velocity * secSinceLastUpdate;
                     }
                     Vector3 range = estimatedTargetPos - missilePos;
@@ -238,7 +238,7 @@ namespace IngameScript
                             accelVector = _missileGuidance.CalculateTotalAccel(estimatedTargetPos, _target.Velocity, missilePos, missileVel);
                             vectorToAlign = relTargetDir;
                             ClampAndAlign(vectorToAlign, ref accelVector, out vectorToAlign);
-                            if (timeToTarget <= 0.5f)
+                            if (timeToTarget <= 0.1f * _maxSpeed / 100f)
                             {
                                 foreach (IMyWarhead warhead in _payload)
                                 {
