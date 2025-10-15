@@ -230,12 +230,12 @@ namespace IngameScript
                 return true;
             }
 
-            private bool ActivateMissile(string launcherAddressString, string timeStringTicks)
+            private bool ActivateMissile(string launcherAddressString, string timeString)
             {
                 long launcherAddress;
                 if (!long.TryParse(launcherAddressString, out launcherAddress)) return false;
                 LauncherAddress = launcherAddress;
-                SyncClock(timeStringTicks);
+                SyncClock(timeString);
                 return MissileControl.Activate();
             }
 
