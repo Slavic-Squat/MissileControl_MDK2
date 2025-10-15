@@ -350,35 +350,39 @@ namespace IngameScript
                 newVectorToAlign = Vector3.Transform(currentVectorToAlign, quaternion);
             }
 
-            public void Activate()
+            public bool Activate()
             {
                 if (Stage != MissileStage.Idle)
                 {
-                    return;
+                    return false;
                 }
                 Stage = MissileStage.Active;
+                return true;
             }
 
-            public void Launch()
+            public bool Launch()
             {
                 if (Stage != MissileStage.Active)
                 {
-                    return;
+                    return false;
                 }
                 Stage = MissileStage.Launching;
+                return true;
             }
 
-            public void UpdateTarget(EntityInfo target)
+            public bool UpdateTarget(EntityInfo target)
             {
                 _target = target;
+                return true;
             }
 
-            public void UpdateLauncher(EntityInfo launcher)
+            public bool UpdateLauncher(EntityInfo launcher)
             {
                 _launcher = launcher;
+                return true;
             }
 
-            public void Abort()
+            public bool Abort()
             {
                 if (Stage > MissileStage.Launching)
                 {
@@ -387,7 +391,9 @@ namespace IngameScript
                         warhead.IsArmed = true;
                         warhead.Detonate();
                     }
+                    return true;
                 }
+                return false;
             }
         }
     }

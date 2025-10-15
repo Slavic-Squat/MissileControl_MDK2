@@ -185,47 +185,51 @@ namespace IngameScript
                 }
             }
 
-            public void Command(string command)
+            public bool Command(string command)
             {
-                CommandHandler.RunCommands(command);
+                return CommandHandler.RunCommands(command);
             }
 
-            private void SyncClock(string timeStringTicks)
+            private bool SyncClock(string timeStringTicks)
             {
                 long timeTicks;
                 if (long.TryParse(timeStringTicks, out timeTicks))
                 {
                     SystemTime = new DateTime(timeTicks);
+                    return true;
                 }
+                return false;
             }
 
-            private void TurnOn()
+            private bool TurnOn()
             {
                 RuntimeInfo.UpdateFrequency = UpdateFrequency.Update1;
+                return true;
             }
 
-            private void TurnOff()
+            private bool TurnOff()
             {
                 RuntimeInfo.UpdateFrequency = UpdateFrequency.None;
+                return true;
             }
 
-            private void ActivateMissile(string launcherAddressString, string timeStringTicks)
+            private bool ActivateMissile(string launcherAddressString, string timeStringTicks)
             {
                 long launcherAddress;
-                if (!long.TryParse(launcherAddressString, out launcherAddress)) return;
+                if (!long.TryParse(launcherAddressString, out launcherAddress)) return false;
                 LauncherAddress = launcherAddress;
                 SyncClock(timeStringTicks);
-                MissileControl.Activate();
+                return MissileControl.Activate();
             }
 
-            private void LaunchMissile()
+            private bool LaunchMissile()
             {
-                MissileControl.Launch();
+                return MissileControl.Launch();
             }
 
-            private void AbortMissile()
+            private bool AbortMissile()
             {
-                MissileControl.Abort();
+                return MissileControl.Abort();
             }
         }
     }
