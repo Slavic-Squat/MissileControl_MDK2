@@ -97,10 +97,10 @@ namespace IngameScript
                 float kp = Config.Get("Config", "Kp").ToSingle(2.5f);
                 Config.Set("Config", "Kp", kp);
 
-                float ki = Config.Get("Config", "Ki").ToSingle(0.1f);
+                float ki = Config.Get("Config", "Ki").ToSingle(0f);
                 Config.Set("Config", "Ki", ki);
 
-                float kd = Config.Get("Config", "Kd").ToSingle(1.2f);
+                float kd = Config.Get("Config", "Kd").ToSingle(0f);
                 Config.Set("Config", "Kd", kd);
 
                 _storageBlock.CustomData = Config.ToString();
