@@ -25,6 +25,7 @@ namespace IngameScript
         public class MissileControl
         {
             public int ID { get; private set; }
+            public DateTime Time { get; private set; }
             public MissileStage Stage { get; private set; } = MissileStage.Idle;
 
             private List<IMyGyro> _gyros = new List<IMyGyro>();
@@ -156,6 +157,7 @@ namespace IngameScript
 
             public void Run(DateTime time)
             {
+                Time = time;
                 if (_lastRunTime == DateTime.MinValue)
                 {
                     _lastRunTime = time;
