@@ -226,7 +226,7 @@ namespace IngameScript
                             vectorToAlign = relTargetDir;
                             ClampAndAlign(vectorToAlign, ref accelVector, out vectorToAlign);
 
-                            if (timeToTarget > 0 && timeToTarget < 7)
+                            if (timeToTarget > 0 && timeToTarget < 10)
                             {
                                 Stage = MissileStage.Interception;
                             }
@@ -238,13 +238,11 @@ namespace IngameScript
                             accelVector = _missileGuidance.CalculateTotalAccel(estimatedTargetPos, _target.Velocity, missilePos, missileVel);
                             vectorToAlign = relTargetDir;
                             ClampAndAlign(vectorToAlign, ref accelVector, out vectorToAlign);
-                            if (timeToTarget <= 0.1f * _maxSpeed / 100f)
+
+                            _payload.ForEach(w => w.IsArmed = true);
+                            if (timeToTarget <= 0)
                             {
-                                foreach (IMyWarhead warhead in _payload)
-                                {
-                                    warhead.IsArmed = true;
-                                    warhead.Detonate();
-                                }
+                                _payload.ForEach(w => w.Detonate());
                             }
                             break;
 
