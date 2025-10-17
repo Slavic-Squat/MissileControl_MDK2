@@ -47,7 +47,7 @@ namespace IngameScript
 
             private IMyTerminalBlock _storageBlock;
             private IMySoundBlock _soundBlock;
-            private List<IMyFunctionalBlock> _allBlocks = new List<IMyFunctionalBlock>();
+            private List<IMyFunctionalBlock> _functionalBlocks = new List<IMyFunctionalBlock>();
 
             private Dictionary<string, Action<string[]>> _commands = new Dictionary<string, Action<string[]>>();
             public SystemCoordinator()
@@ -123,15 +123,18 @@ namespace IngameScript
 
             private void GetBlocks()
             {
-                GTS.GetBlocksOfType(_allBlocks, b => b.IsSameConstructAs(MePB));
+                List<IMyTerminalBlock> allBlocks = new List<IMyTerminalBlock>();
+                GTS.GetBlocksOfType(allBlocks, b => b.IsSameConstructAs(MePB));
                 
-                _storageBlock = _allBlocks.Find(b => b.CustomData.Contains("[Config]"));
+                _storageBlock = allBlocks.Find(b => b.CustomData.Contains("[Config]"));
                 if (_storageBlock == null) throw new Exception("No block with [Config] in CustomData found on this construct.");
 
-                ReferenceController = _allBlocks.Find(b => b is IMyShipController) as IMyShipController;
+                ReferenceController = allBlocks.Find(b => b is IMyShipController) as IMyShipController;
                 if (ReferenceController == null) throw new Exception("No Control block found on this construct.");
 
-                _soundBlock = _allBlocks.Find(b => b is IMySoundBlock) as IMySoundBlock;
+                _soundBlock = allBlocks.Find(b => b is IMySoundBlock) as IMySoundBlock;
+
+                _functionalBlocks = allBlocks.FindAll(b => b is IMyFunctionalBlock).Cast<IMyFunctionalBlock>().ToList();
             }
 
             public void Run()
@@ -229,13 +232,13 @@ namespace IngameScript
             private bool TurnOff()
             {
                 RuntimeInfo.UpdateFrequency = UpdateFrequency.None;
-                _allBlocks.ForEach(b => { if (!ReferenceEquals(b, MePB)) b.Enabled = false; });
+                _functionalBlocks.ForEach(b => { if (!ReferenceEquals(b, MePB)) b.Enabled = false; });
                 return true;
             }
 
             private bool ActivateMissile(string launcherAddressString, string timeString)
             {
-                _allBlocks.ForEach(b => b.Enabled = true);
+                _functionalBlocks.ForEach(b => b.Enabled = true);
                 long launcherAddress;
                 if (!long.TryParse(launcherAddressString, out launcherAddress)) return false;
                 LauncherAddress = launcherAddress;
