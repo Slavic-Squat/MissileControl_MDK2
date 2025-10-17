@@ -46,6 +46,7 @@ namespace IngameScript
             public EntityInfo Launcher { get; private set; }
 
             private IMyTerminalBlock _storageBlock;
+            private IMySoundBlock _soundBlock;
             private List<IMyFunctionalBlock> _allBlocks = new List<IMyFunctionalBlock>();
 
             private Dictionary<string, Action<string[]>> _commands = new Dictionary<string, Action<string[]>>();
@@ -129,6 +130,8 @@ namespace IngameScript
 
                 ReferenceController = _allBlocks.Find(b => b is IMyShipController) as IMyShipController;
                 if (ReferenceController == null) throw new Exception("No Control block found on this construct.");
+
+                _soundBlock = _allBlocks.Find(b => b is IMySoundBlock) as IMySoundBlock;
             }
 
             public void Run()
@@ -242,6 +245,26 @@ namespace IngameScript
 
             private bool LaunchMissile()
             {
+                if (_soundBlock != null)
+                {
+                    Random rand = new Random();
+
+                    int num = rand.Next(0, 10);
+
+                    switch (num)
+                    {
+                        case 0:
+                            _soundBlock.SelectedSound = "Missile 0";
+                            _soundBlock.Play();
+                            break;
+                        case 1:
+                            _soundBlock.SelectedSound = "Missile 1";
+                            _soundBlock.Play();
+                            break;
+                        default:
+                            break;
+                    }
+                }
                 return MissileControl.Launch();
             }
 
