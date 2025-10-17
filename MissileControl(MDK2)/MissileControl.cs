@@ -79,26 +79,26 @@ namespace IngameScript
 
             private void GetBlocks()
             {
-                GTS.GetBlocksOfType(_thrusters, b => b.IsSameConstructAs(MePB) && b.CustomName.Contains("Thruster"));
+                GTS.GetBlocksOfType(_thrusters, b => b.IsSameConstructAs(MePB));
                 if (_thrusters.Count == 0)
                 {
                     throw new Exception("No thrusters found on this construct.");
                 }
-                GTS.GetBlocksOfType(_gyros, b => b.IsSameConstructAs(MePB) && b.CustomName.Contains("Gyro"));
+                GTS.GetBlocksOfType(_gyros, b => b.IsSameConstructAs(MePB));
                 if (_gyros.Count == 0)
                 {
                     throw new Exception("No gyros found on this construct.");
                 }
 
                 List<IMyShipConnector> connectors = new List<IMyShipConnector>();
-                GTS.GetBlocksOfType(connectors, b => b.IsSameConstructAs(MePB) && b.CustomName.Contains("Connector"));
+                GTS.GetBlocksOfType(connectors, b => b.IsSameConstructAs(MePB));
                 if (connectors.Count == 0)
                 {
                     throw new Exception("No connector found on this construct.");
                 }
                 _connector = connectors[0];
 
-                GTS.GetBlocksOfType(_payload, b => b.IsSameConstructAs(MePB) && b.CustomName.Contains("Warhead"));
+                GTS.GetBlocksOfType(_payload, b => b.IsSameConstructAs(MePB));
                 if (_payload.Count == 0)
                 {
                     throw new Exception("No warheads found on this construct.");
