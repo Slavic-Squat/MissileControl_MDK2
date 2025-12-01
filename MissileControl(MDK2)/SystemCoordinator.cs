@@ -135,10 +135,10 @@ namespace IngameScript
             public void Run()
             {
                 SystemTime += RuntimeInfo.TimeSinceLastRun.TotalSeconds;
-                DebugEcho($"System Time: {SystemTime}s\n");
-                DebugWrite($"System Time: {SystemTime}s\n", false);
-                DebugEcho($"Last Run Time: {RuntimeInfo.LastRunTimeMs}ms\n");
-                DebugWrite($"Last Run Time: {RuntimeInfo.LastRunTimeMs}ms\n", true);
+                DebugEcho($"System Time: {SystemTime:F2}s\n");
+                DebugWrite($"System Time: {SystemTime:F2}s\n", false);
+                DebugEcho($"Last Run Time: {RuntimeInfo.LastRunTimeMs:F2}ms\n");
+                DebugWrite($"Last Run Time: {RuntimeInfo.LastRunTimeMs:F2}ms\n", true);
                 CommunicationHandler.Recieve();
 
                 while (CommunicationHandler.HasMessage("MyMissileLauncherInfo", true))
