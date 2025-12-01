@@ -79,29 +79,31 @@ namespace IngameScript
 
             private void GetBlocks()
             {
-                GTS.GetBlocksOfType(_thrusters, b => b.IsSameConstructAs(MePB));
+                _thrusters = AllGridBlocks.Where(b => b is IMyThrust).Cast<IMyThrust>().ToList();
                 if (_thrusters.Count == 0)
                 {
-                    throw new Exception("No thrusters found on this construct.");
+                    DebugWrite("Error: no thrusters found!\n", true);
+                    throw new Exception("No thrusters found!\n");
                 }
-                GTS.GetBlocksOfType(_gyros, b => b.IsSameConstructAs(MePB));
+                _gyros = AllGridBlocks.Where(b => b is IMyGyro).Cast<IMyGyro>().ToList();
                 if (_gyros.Count == 0)
                 {
-                    throw new Exception("No gyros found on this construct.");
+                    DebugWrite("Error: no gyros found!\n", true);
+                    throw new Exception("No gyros found!\n");
                 }
 
-                List<IMyShipConnector> connectors = new List<IMyShipConnector>();
-                GTS.GetBlocksOfType(connectors, b => b.IsSameConstructAs(MePB));
-                if (connectors.Count == 0)
+                _connector = AllGridBlocks.Find(b => b is IMyShipConnector) as IMyShipConnector;
+                if (_connector == null)
                 {
-                    throw new Exception("No connector found on this construct.");
+                    DebugWrite("Error: no connector found!\n", true);
+                    throw new Exception("No connector found!\n");
                 }
-                _connector = connectors[0];
 
-                GTS.GetBlocksOfType(_payload, b => b.IsSameConstructAs(MePB));
+                _payload = AllGridBlocks.Where(b => b is IMyWarhead).Cast<IMyWarhead>().ToList();
                 if (_payload.Count == 0)
                 {
-                    throw new Exception("No warheads found on this construct.");
+                    DebugWrite("Error: no warheads found!\n", true);
+                    throw new Exception("No warheads found!\n");
                 }
             }
 
@@ -360,39 +362,35 @@ namespace IngameScript
                 newVectorToAlign = Vector3.Transform(currentVectorToAlign, quaternion);
             }
 
-            public bool Activate()
+            public void Activate()
             {
                 if (Stage != MissileStage.Idle)
                 {
-                    return false;
+                    return;
                 }
                 Stage = MissileStage.Active;
-                return true;
             }
 
-            public bool Launch()
+            public void Launch()
             {
                 if (Stage != MissileStage.Active)
                 {
-                    return false;
+                    return;
                 }
                 Stage = MissileStage.Launching;
-                return true;
             }
 
-            public bool UpdateTarget(EntityInfo target)
+            public void UpdateTarget(EntityInfo target)
             {
                 _target = target;
-                return true;
             }
 
-            public bool UpdateLauncher(EntityInfo launcher)
+            public void UpdateLauncher(EntityInfo launcher)
             {
                 _launcher = launcher;
-                return true;
             }
 
-            public bool Abort()
+            public void Abort()
             {
                 if (Stage > MissileStage.Launching)
                 {
@@ -401,9 +399,7 @@ namespace IngameScript
                         warhead.IsArmed = true;
                         warhead.Detonate();
                     }
-                    return true;
                 }
-                return false;
             }
         }
     }

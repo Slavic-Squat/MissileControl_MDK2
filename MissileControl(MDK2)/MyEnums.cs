@@ -46,11 +46,6 @@ namespace IngameScript
             Target, Missile
         }
 
-        public enum SerializedTypes : byte
-        {
-            Command, EntityInfo
-        }
-
         public enum EntityInfoSubType : byte
         {
             None, MissileInfoLite, MissileInfo,

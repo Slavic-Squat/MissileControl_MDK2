@@ -41,10 +41,10 @@ namespace IngameScript
                 return bytes.ToArray();
             }
 
-            public static MissileInfoLite Deserialize(byte[] data, int offset)
+            public static MissileInfoLite Deserialize(byte[] bytes, int offset)
             {
                 int index = offset;
-                long launcherID = BitConverter.ToInt64(data, index);
+                long launcherID = BitConverter.ToInt64(bytes, index);
                 return new MissileInfoLite(launcherID);
             }
         }

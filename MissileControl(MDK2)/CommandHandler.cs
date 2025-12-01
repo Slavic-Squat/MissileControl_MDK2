@@ -27,42 +27,16 @@ namespace IngameScript
             private MyCommandLine _commandLine = new MyCommandLine();
             private Dictionary<string, Action<string[]>> _commands = new Dictionary<string, Action<string[]>>();
 
-            private IMyTerminalBlock _storageBlock;
-            private string _commandsHeader = "[COMMANDS]\n";
-
-            public CommandHandler(IMyTerminalBlock storageBlock, Dictionary<string, Action<string[]>> commands)
+            public CommandHandler()
             {
-                _storageBlock = storageBlock;
-                _commands = commands;
-                _storageBlock.CustomData = _commandsHeader;
+
             }
 
-            public bool RunCustomDataCommands()
-            {
-                string commands = null;
-                if (!_storageBlock.CustomData.StartsWith(_commandsHeader))
-                {
-                    _storageBlock.CustomData = _commandsHeader;
-                    return false;
-                }
-                else
-                {
-                    commands = _storageBlock.CustomData.Substring(_commandsHeader.Length);
-                }
-                if (commands != null && commands != "")
-                {
-                    bool success = RunCommands(commands);
-                    _storageBlock.CustomData = _commandsHeader;
-                    return success;
-                }
-                return false;
-            }
-
-            public bool RunCommands(string commandsString)
+            public void RunCommands(string commandsString)
             {
                 if (commandsString == null || commandsString == "")
                 {
-                    return false;
+                    return;
                 }
                 string[] separatedCommandStrings = commandsString.Split('|', '\n');
                 foreach (string commandString in separatedCommandStrings)
@@ -87,7 +61,11 @@ namespace IngameScript
                         }
                     }
                 }
-                return true;
+            }
+
+            public void RegisterCommand(string commandName, Action<string[]> commandAction)
+            {
+                _commands[commandName] = commandAction;
             }
         }
     }

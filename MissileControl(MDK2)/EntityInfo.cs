@@ -126,13 +126,10 @@ namespace IngameScript
 
             public byte[] Serialize()
             {
-                List<byte> bytes = new List<byte>
-                {
-                    (byte)SerializedTypes.EntityInfo,
-                    (byte)Type,
-                    (byte)SubType,
-                };
+                List<byte> bytes = new List<byte>();
 
+                bytes.Add((byte)Type);
+                bytes.Add((byte)SubType);
                 bytes.AddRange(BitConverter.GetBytes(EntityID));
 
                 bytes.AddRange(BitConverter.GetBytes(Position.X));
@@ -162,54 +159,54 @@ namespace IngameScript
                 return bytes.ToArray();
             }
 
-            public static EntityInfo Deserialize(byte[] data, int offset)
+            public static EntityInfo Deserialize(byte[] bytes, int offset)
             {
                 int index = offset;
 
-                EntityType type = (EntityType)data[index];
+                EntityType type = (EntityType)bytes[index];
                 index += 1;
 
-                EntityInfoSubType subType = (EntityInfoSubType)data[index];
+                EntityInfoSubType subType = (EntityInfoSubType)bytes[index];
                 index += 1;
 
-                long entityID = BitConverter.ToInt64(data, index);
+                long entityID = BitConverter.ToInt64(bytes, index);
                 index += 8;
 
-                float xPos = BitConverter.ToSingle(data, index);
+                float xPos = BitConverter.ToSingle(bytes, index);
                 index += 4;
 
-                float yPos = BitConverter.ToSingle(data, index);
+                float yPos = BitConverter.ToSingle(bytes, index);
                 index += 4;
 
-                float zPos = BitConverter.ToSingle(data, index);
+                float zPos = BitConverter.ToSingle(bytes, index);
                 index += 4;
 
                 Vector3 pos = new Vector3(xPos, yPos, zPos);
 
-                float xVel = BitConverter.ToSingle(data, index);
+                float xVel = BitConverter.ToSingle(bytes, index);
                 index += 4;
 
-                float yVel = BitConverter.ToSingle(data, index);
+                float yVel = BitConverter.ToSingle(bytes, index);
                 index += 4;
 
-                float zVel = BitConverter.ToSingle(data, index);
+                float zVel = BitConverter.ToSingle(bytes, index);
                 index += 4;
 
                 Vector3 vel = new Vector3(xVel, yVel, zVel);
 
-                double timeRecorded = BitConverter.ToDouble(data, index);
+                double timeRecorded = BitConverter.ToDouble(bytes, index);
                 index += 8;
 
                 switch (subType)
                 {
                     case EntityInfoSubType.MissileInfo:
                         {
-                            MissileInfo missileInfo = Program.MissileInfo.Deserialize(data, index);
+                            MissileInfo missileInfo = Program.MissileInfo.Deserialize(bytes, index);
                             return new EntityInfo(entityID, pos, vel, timeRecorded, missileInfo);
                         }
                     case EntityInfoSubType.MissileInfoLite:
                         {
-                            MissileInfoLite missileInfoLite = Program.MissileInfoLite.Deserialize(data, index);
+                            MissileInfoLite missileInfoLite = Program.MissileInfoLite.Deserialize(bytes, index);
                             return new EntityInfo(entityID, pos, vel, timeRecorded, missileInfoLite);
                         }
                     default:

@@ -57,20 +57,20 @@ namespace IngameScript
                 return bytes.ToArray();
             }
 
-            public static MissileInfo Deserialize(byte[] data, int offset)
+            public static MissileInfo Deserialize(byte[] bytes, int offset)
             {
                 int index = offset;
-                long launcherID = BitConverter.ToInt64(data, index);
+                long launcherID = BitConverter.ToInt64(bytes, index);
                 index += 8;
-                MissileStage stage = (MissileStage)data[index];
+                MissileStage stage = (MissileStage)bytes[index];
                 index += 1;
-                MissileType type = (MissileType)data[index];
+                MissileType type = (MissileType)bytes[index];
                 index += 1;
-                MissileGuidanceType guidanceType = (MissileGuidanceType)data[index];
+                MissileGuidanceType guidanceType = (MissileGuidanceType)bytes[index];
                 index += 1;
-                MissilePayload payload = (MissilePayload)data[index];
+                MissilePayload payload = (MissilePayload)bytes[index];
                 index += 1;
-                long targetID = BitConverter.ToInt64(data, index);
+                long targetID = BitConverter.ToInt64(bytes, index);
                 index += 8;
                 return new MissileInfo(launcherID, targetID, stage, type, guidanceType, payload);
             }

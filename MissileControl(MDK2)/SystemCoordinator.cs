@@ -45,11 +45,8 @@ namespace IngameScript
             public EntityInfo Target { get; private set; }
             public EntityInfo Launcher { get; private set; }
 
-            private IMyTerminalBlock _storageBlock;
             private IMySoundBlock _soundBlock;
             private List<IMyFunctionalBlock> _functionalBlocks = new List<IMyFunctionalBlock>();
-
-            private Dictionary<string, Action<string[]>> _commands = new Dictionary<string, Action<string[]>>();
             public SystemCoordinator()
             {
                 GetBlocks();
@@ -59,7 +56,7 @@ namespace IngameScript
             private void Init()
             {
                 Config = new MyIni();
-                if (!Config.TryParse(_storageBlock.CustomData))
+                if (!Config.TryParse(MePB.CustomData))
                 {
                     Config.Clear();
                     Config.Set("Config", "Type", GetName(MissileType.Unknown));
@@ -104,45 +101,45 @@ namespace IngameScript
                 float kd = Config.Get("Config", "Kd").ToSingle(0f);
                 Config.Set("Config", "Kd", kd);
 
-                _storageBlock.CustomData = Config.ToString();
+                MePB.CustomData = Config.ToString();
                 MissileControl = new MissileControl(0, missileMass, maxSpeed, Type, GuidanceType, Payload, m, n, kp, ki, kd);
                 CommunicationHandler = new CommunicationHandler(0, secureBroadcastPIN);
 
-                CommandHandler = new CommandHandler(MePB, _commands);
+                CommandHandler = new CommandHandler();
 
                 CommunicationHandler.RegisterTag("MyMissileLauncherInfo", true);
                 CommunicationHandler.RegisterTag("MyMissileTargetInfo", true);
                 CommunicationHandler.RegisterTag("MyMissileCommands", true);
-                _commands["SYNC_CLOCK"] = (args) => SyncClock(args[0]);
-                _commands["ON"] = (args) => TurnOn();
-                _commands["OFF"] = (args) => TurnOff();
-                _commands["ACTIVATE"] = (args) => ActivateMissile(args[0], args[1]);
-                _commands["LAUNCH"] = (args) => LaunchMissile();
-                _commands["ABORT"] = (args) => AbortMissile();
+                CommandHandler.RegisterCommand("SYNC_CLOCK", (args) => SyncClock(args[0]));
+                CommandHandler.RegisterCommand("ON", (args) => TurnOn());
+                CommandHandler.RegisterCommand("OFF", (args) => TurnOff());
+                CommandHandler.RegisterCommand("ACTIVATE", (args) => ActivateMissile(args[0], args[1]));
+                CommandHandler.RegisterCommand("LAUNCH", (args) => LaunchMissile());
+                CommandHandler.RegisterCommand("ABORT", (args) => AbortMissile());
             }
 
             private void GetBlocks()
             {
-                List<IMyTerminalBlock> allBlocks = new List<IMyTerminalBlock>();
-                GTS.GetBlocksOfType(allBlocks, b => b.IsSameConstructAs(MePB));
-                
-                _storageBlock = allBlocks.Find(b => b.CustomData.Contains("[Config]"));
-                if (_storageBlock == null) throw new Exception("No block with [Config] in CustomData found on this construct.");
+                ReferenceController = AllGridBlocks.Find(b => b is IMyShipController && b.CustomName.Contains("Missile Controller")) as IMyShipController;
+                if (ReferenceController == null)
+                {
+                    DebugWrite("Error: missile controller not found!\n", true);
+                    throw new Exception("missile controller not found!\n");
+                }
 
-                ReferenceController = allBlocks.Find(b => b is IMyShipController) as IMyShipController;
-                if (ReferenceController == null) throw new Exception("No Control block found on this construct.");
+                _soundBlock = AllGridBlocks.Find(b => b is IMySoundBlock) as IMySoundBlock;
 
-                _soundBlock = allBlocks.Find(b => b is IMySoundBlock) as IMySoundBlock;
-
-                _functionalBlocks = allBlocks.FindAll(b => b is IMyFunctionalBlock).Cast<IMyFunctionalBlock>().ToList();
+                _functionalBlocks = AllGridBlocks.Where(b => b is IMyFunctionalBlock).Cast<IMyFunctionalBlock>().ToList();
             }
 
             public void Run()
             {
                 SystemTime += RuntimeInfo.TimeSinceLastRun.TotalSeconds;
-                DebugEcho(SystemTime.ToString());
+                DebugEcho($"System Time: {SystemTime}s\n");
+                DebugWrite($"System Time: {SystemTime}s\n", false);
+                DebugEcho($"Last Run Time: {RuntimeInfo.LastRunTimeMs}ms\n");
+                DebugWrite($"Last Run Time: {RuntimeInfo.LastRunTimeMs}ms\n", true);
                 CommunicationHandler.Recieve();
-                CommandHandler.RunCustomDataCommands();
 
                 while (CommunicationHandler.HasMessage("MyMissileLauncherInfo", true))
                 {
@@ -150,11 +147,8 @@ namespace IngameScript
                     if (CommunicationHandler.TryRetrieveMessage("MyMissileLauncherInfo", true, out msg))
                     {
                         if (msg.Source != LauncherAddress) continue;
-                        object msgObject = Deserializer.Deserialize(msg.Data as string);
-                        if (msgObject is EntityInfo)
-                        {
-                            Launcher = (EntityInfo)msgObject;
-                        }
+                        byte[] bytes = Convert.FromBase64String(msg.Data as string);
+                        Launcher = EntityInfo.Deserialize(bytes, 0);
                     }
                 }
 
@@ -164,11 +158,8 @@ namespace IngameScript
                     if (CommunicationHandler.TryRetrieveMessage("MyMissileTargetInfo", true, out msg))
                     {
                         if (msg.Source != LauncherAddress) continue;
-                        object msgObject = Deserializer.Deserialize(msg.Data as string);
-                        if (msgObject is EntityInfo)
-                        {
-                            Target = (EntityInfo)msgObject;
-                        }
+                        byte[] bytes = Convert.FromBase64String(msg.Data as string);
+                        Target = EntityInfo.Deserialize(bytes, 0);
                     }
                 }
 
@@ -178,11 +169,8 @@ namespace IngameScript
                     if (CommunicationHandler.TryRetrieveMessage("MyMissileCommands", true, out msg))
                     {
                         if (msg.Source != LauncherAddress) continue;
-                        object msgObject = Deserializer.Deserialize(msg.Data as string);
-                        if (msgObject is string)
-                        {
-                            Command((string)msgObject);
-                        }
+                        string command = msg.Data as string;
+                        Command(command);
                     }
                 }
 
@@ -207,46 +195,42 @@ namespace IngameScript
                 }
             }
 
-            public bool Command(string command)
+            public void Command(string command)
             {
-                return CommandHandler.RunCommands(command);
+                CommandHandler.RunCommands(command);
             }
 
-            private bool SyncClock(string timeString)
+            private void SyncClock(string timeString)
             {
                 double time;
                 if (double.TryParse(timeString, out time))
                 {
                     SystemTime = time;
-                    return true;
                 }
-                return false;
             }
 
-            private bool TurnOn()
+            private void TurnOn()
             {
                 RuntimeInfo.UpdateFrequency = UpdateFrequency.Update1;
-                return true;
             }
 
-            private bool TurnOff()
+            private void TurnOff()
             {
                 RuntimeInfo.UpdateFrequency = UpdateFrequency.None;
                 _functionalBlocks.ForEach(b => { if (!ReferenceEquals(b, MePB)) b.Enabled = false; });
-                return true;
             }
 
-            private bool ActivateMissile(string launcherAddressString, string timeString)
+            private void ActivateMissile(string launcherAddressString, string timeString)
             {
                 _functionalBlocks.ForEach(b => b.Enabled = true);
                 long launcherAddress;
-                if (!long.TryParse(launcherAddressString, out launcherAddress)) return false;
+                if (!long.TryParse(launcherAddressString, out launcherAddress)) return;
                 LauncherAddress = launcherAddress;
                 SyncClock(timeString);
-                return MissileControl.Activate();
+                MissileControl.Activate();
             }
 
-            private bool LaunchMissile()
+            private void LaunchMissile()
             {
                 if (_soundBlock != null)
                 {
@@ -268,12 +252,12 @@ namespace IngameScript
                             break;
                     }
                 }
-                return MissileControl.Launch();
+                MissileControl.Launch();
             }
 
-            private bool AbortMissile()
+            private void AbortMissile()
             {
-                return MissileControl.Abort();
+                MissileControl.Abort();
             }
         }
     }

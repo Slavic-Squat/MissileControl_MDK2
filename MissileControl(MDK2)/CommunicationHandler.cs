@@ -75,24 +75,34 @@ namespace IngameScript
                 }
             }
 
-            public void SendBroadcast(byte[] data, string tag, bool secure)
+            public void SendBroadcast(string message, string tag, bool secure)
             {
-                string dataString = Convert.ToBase64String(data);
                 if (secure)
                 {
                     tag = $"{_secureBroadcastPIN}_{tag}";
                 }
-                IGCS.SendBroadcastMessage(tag, dataString);
+                IGCS.SendBroadcastMessage(tag, message);
             }
 
-            public void SendUnicast(byte[] data, long targetAddress, string tag, bool secure)
+            public void SendBroadcast(byte[] bytes, string tag, bool secure)
             {
-                string dataString = Convert.ToBase64String(data);
+                string dataString = Convert.ToBase64String(bytes);
+                SendBroadcast(dataString, tag, secure);
+            }
+
+            public void SendUnicast(string message, long targetAddress, string tag, bool secure)
+            {
                 if (secure)
                 {
                     tag = $"{_secureBroadcastPIN}_{tag}";
                 }
-                IGCS.SendUnicastMessage(targetAddress, tag, dataString);
+                IGCS.SendUnicastMessage(targetAddress, tag, message);
+            }
+
+            public void SendUnicast(byte[] bytes, long targetAddress, string tag, bool secure)
+            {
+                string dataString = Convert.ToBase64String(bytes);
+                SendUnicast(dataString, targetAddress, tag, secure);
             }
 
             public void RegisterBroadcastListener(string tag, bool secure)

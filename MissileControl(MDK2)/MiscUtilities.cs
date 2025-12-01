@@ -53,6 +53,37 @@ namespace IngameScript
                     shifted += range;
                 return min + shifted;
             }
+
+            public static float Clamp(float value, float min, float max)
+            {
+                if (min > max)
+                    throw new ArgumentException("min must be less than or equal to max");
+                if (value < min)
+                    return min;
+                if (value > max)
+                    return max;
+                return value;
+            }
+
+            public static float Lerp(float a, float b, float t)
+            {
+                return a + (b - a) * t;
+            }
+
+            public static float InverseLerp(float a, float b, float value)
+            {
+                if (a == b)
+                    throw new ArgumentException("a and b must be different values");
+                return (value - a) / (b - a);
+            }
+
+            public static float Remap(float inMin, float inMax, float outMin, float outMax, float value, bool clamp = false)
+            {
+                float t = InverseLerp(inMin, inMax, value);
+                if (clamp)
+                    t = Clamp(t, 0, 1);
+                return Lerp(outMin, outMax, t);
+            }
         }
     }
 }
