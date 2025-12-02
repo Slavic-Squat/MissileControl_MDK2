@@ -110,6 +110,7 @@ namespace IngameScript
                 CommandHandler.RegisterCommand("ON", (args) => TurnOn());
                 CommandHandler.RegisterCommand("OFF", (args) => TurnOff());
                 CommandHandler.RegisterCommand("ACTIVATE", (args) => ActivateMissile(args[0], args[1]));
+                CommandHandler.RegisterCommand("DEACTIVATE", (args) => DeactivateMissile());
                 CommandHandler.RegisterCommand("LAUNCH", (args) => LaunchMissile());
                 CommandHandler.RegisterCommand("ABORT", (args) => AbortMissile());
             }
