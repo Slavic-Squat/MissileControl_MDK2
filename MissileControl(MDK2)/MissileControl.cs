@@ -28,10 +28,10 @@ namespace IngameScript
             public double Time { get; private set; }
             public MissileStage Stage { get; private set; } = MissileStage.Idle;
 
-            private List<IMyGyro> _gyros = new List<IMyGyro>();
+            private List<Gyro> _gyros = new List<Gyro>();
             private IMyShipConnector _connector;
             private List<IMyWarhead> _payload = new List<IMyWarhead>();
-            private List<IMyThrust> _thrusters = new List<IMyThrust>();
+            private Dictionary<Direction, ThrusterGroup> _thrusters = new Dictionary<Direction, ThrusterGroup>();
 
             private double _lastRunTime;
 
@@ -57,9 +57,6 @@ namespace IngameScript
             private EntityInfo _target;
             private EntityInfo _launcher;
 
-            private List<ThrusterInfo> _thrusterInfos = new List<ThrusterInfo>();
-            private Dictionary<Direction, float> _maxThrust = new Dictionary<Direction, float>();
-
             public MissileControl(int ID, float missileMass, float maxSpeed, MissileType type, MissileGuidanceType guidanceType, MissilePayload payload, float m, float n, float kp, float ki, float kd)
             {
                 this.ID = ID;
@@ -79,13 +76,19 @@ namespace IngameScript
 
             private void GetBlocks()
             {
-                _thrusters = AllGridBlocks.Where(b => b is IMyThrust).Cast<IMyThrust>().ToList();
+                _thrusters[Direction.Up] = new ThrusterGroup(Direction.Up, AllGridBlocks.Where(b => b is IMyThrust && b.CustomName.Contains("Up")).Select(b => new Thruster(b as IMyThrust, Direction.Up)).ToArray());
+                _thrusters[Direction.Down] = new ThrusterGroup(Direction.Down, AllGridBlocks.Where(b => b is IMyThrust && b.CustomName.Contains("Down")).Select(b => new Thruster(b as IMyThrust, Direction.Down)).ToArray());
+                _thrusters[Direction.Left] = new ThrusterGroup(Direction.Left, AllGridBlocks.Where(b => b is IMyThrust && b.CustomName.Contains("Left")).Select(b => new Thruster(b as IMyThrust, Direction.Left)).ToArray());
+                _thrusters[Direction.Right] = new ThrusterGroup(Direction.Right, AllGridBlocks.Where(b => b is IMyThrust && b.CustomName.Contains("Right")).Select(b => new Thruster(b as IMyThrust, Direction.Right)).ToArray());
+                _thrusters[Direction.Forward] = new ThrusterGroup(Direction.Forward, AllGridBlocks.Where(b => b is IMyThrust && b.CustomName.Contains("Forward")).Select(b => new Thruster(b as IMyThrust, Direction.Forward)).ToArray());
+                _thrusters[Direction.Backward] = new ThrusterGroup(Direction.Backward, AllGridBlocks.Where(b => b is IMyThrust && b.CustomName.Contains("Backward")).Select(b => new Thruster(b as IMyThrust, Direction.Backward)).ToArray());
+
                 if (_thrusters.Count == 0)
                 {
                     DebugWrite("Error: no thrusters found!\n", true);
                     throw new Exception("No thrusters found!\n");
                 }
-                _gyros = AllGridBlocks.Where(b => b is IMyGyro).Cast<IMyGyro>().ToList();
+                _gyros = AllGridBlocks.Where(b => b is IMyGyro).Select(b => new Gyro(b as IMyGyro)).ToList();
                 if (_gyros.Count == 0)
                 {
                     DebugWrite("Error: no gyros found!\n", true);
@@ -109,58 +112,8 @@ namespace IngameScript
 
             private void Init()
             {
-                _thrusterInfos.Clear();
-                _maxThrust.Clear();
-
-                foreach (Direction dir in Enum.GetValues(typeof(Direction)))
-                {
-                    _maxThrust[dir] = 0;
-                }
-
-                foreach (IMyThrust thruster in _thrusters)
-                {
-                    Vector3D localThrusterDirection = Vector3.TransformNormal(thruster.WorldMatrix.Backward, Matrix.Transpose(SystemCoordinator.ReferenceBasis));
-
-                    float epsilon = 0.01f;
-                    if (localThrusterDirection.Z <= -1 + epsilon)
-                    {
-                        ThrusterInfo thrusterInfo = new ThrusterInfo(thruster, Direction.Forward);
-                        _thrusterInfos.Add(thrusterInfo);
-                        _maxThrust[Direction.Forward] += thruster.MaxThrust;
-                    }
-                    else if (localThrusterDirection.Z >= 1 - epsilon)
-                    {
-                        ThrusterInfo thrusterInfo = new ThrusterInfo(thruster, Direction.Backward);
-                        _thrusterInfos.Add(thrusterInfo);
-                        _maxThrust[Direction.Backward] += thruster.MaxThrust;
-                    }
-                    else if (localThrusterDirection.X <= -1 + epsilon)
-                    {
-                        ThrusterInfo thrusterInfo = new ThrusterInfo(thruster, Direction.Left);
-                        _thrusterInfos.Add(thrusterInfo);
-                        _maxThrust[Direction.Left] += thruster.MaxThrust;
-                    }
-                    else if (localThrusterDirection.X >= 1 - epsilon)
-                    {
-                        ThrusterInfo thrusterInfo = new ThrusterInfo(thruster, Direction.Right);
-                        _thrusterInfos.Add(thrusterInfo);
-                        _maxThrust[Direction.Right] += thruster.MaxThrust;
-                    }
-                    else if (localThrusterDirection.Y >= 1 - epsilon)
-                    {
-                        ThrusterInfo thrusterInfo = new ThrusterInfo(thruster, Direction.Up);
-                        _thrusterInfos.Add(thrusterInfo);
-                        _maxThrust[Direction.Up] += thruster.MaxThrust;
-                    }
-                    else if (localThrusterDirection.Y <= -1 + epsilon)
-                    {
-                        ThrusterInfo thrusterInfo = new ThrusterInfo(thruster, Direction.Down);
-                        _thrusterInfos.Add(thrusterInfo);
-                        _maxThrust[Direction.Down] += thruster.MaxThrust;
-                    }
-                }
-                _maxForwardAccel = _maxThrust[Direction.Forward] / _missileMass;
-                _maxRadialAccel = _maxThrust[Direction.Right] / _missileMass;
+                _maxForwardAccel = _thrusters[Direction.Forward].MaxThrust / _missileMass;
+                _maxRadialAccel = _thrusters[Direction.Right].MaxThrust / _missileMass;
                 _maxAccel = (float)Math.Sqrt(_maxForwardAccel * _maxForwardAccel + _maxRadialAccel * _maxRadialAccel);
 
                 _pitchController = new PIDControl(_kp, _ki, _kd);
@@ -171,31 +124,45 @@ namespace IngameScript
 
             public void Run(double time)
             {
-                Time = time;
-                if (_lastRunTime == 0)
+                if (Time == 0)
                 {
-                    _lastRunTime = time;
+                    Time = time;
                     return;
                 }
+                double globalTime = SystemCoordinator.GlobalTime;
 
+                if ( Stage == MissileStage.Idle)
+                {
+                    foreach (var thruster in _thrusters.Values)
+                    {
+                        thruster.ThrustOverride = 0;
+                    }
+                    foreach (IMyGyro gyro in _gyros)
+                    {
+                        gyro.Pitch = 0;
+                        gyro.Yaw = 0;
+                        gyro.Roll = 0;
+                    }
+                    return;
+                }
                 if (Stage > MissileStage.Idle)
                 {
-                    float timeDelta = (float)(time - _lastRunTime);
+                    double timeDelta = time - Time;
 
                     Vector3 missilePos = SystemCoordinator.ReferencePosition;
                     Vector3 missileVel = SystemCoordinator.ReferenceVelocity;
 
                     Vector3 estimatedTargetPos = _target.Position;
                     Vector3 estimatedLauncherPos = _launcher.Position;
-                    if (_target.TimeRecorded < time)
+                    if (_target.TimeRecorded < globalTime)
                     {
-                        float secSinceLastUpdate = (float)(time - _target.TimeRecorded);
-                        estimatedTargetPos = _target.Position + _target.Velocity * secSinceLastUpdate;
+                        double secSinceLastUpdate = globalTime - _target.TimeRecorded;
+                        estimatedTargetPos = _target.Position + _target.Velocity * (float)secSinceLastUpdate;
                     }
-                    if (_launcher.TimeRecorded < time)
+                    if (_launcher.TimeRecorded < globalTime)
                     {
-                        float secSinceLastUpdate = (float)(time - _launcher.TimeRecorded);
-                        estimatedLauncherPos = _launcher.Position + _launcher.Velocity * secSinceLastUpdate;
+                        double secSinceLastUpdate = globalTime - _launcher.TimeRecorded;
+                        estimatedLauncherPos = _launcher.Position + _launcher.Velocity * (float)secSinceLastUpdate;
                     }
                     Vector3 range = estimatedTargetPos - missilePos;
                     float dist = range.Length();
@@ -204,7 +171,7 @@ namespace IngameScript
                     float closingSpeed = -Vector3.Dot(relTargetDir, relVel);
                     float timeToTarget = dist / closingSpeed;
 
-                    Vector3 forwardVector = SystemCoordinator.ReferenceBasis.Forward;
+                    Vector3 forwardVector = SystemCoordinator.ReferenceWorldMatrix.Forward;
                     Vector3 vectorToAlign;
                     Vector3 accelVector;
                     switch (Stage)
@@ -253,8 +220,8 @@ namespace IngameScript
                             accelVector = Vector3.Zero;
                             break;
                     }
-                    Vector3 forwardVectorLocal = Vector3.TransformNormal(forwardVector, Matrix.Transpose(SystemCoordinator.ReferenceBasis));
-                    Vector3 vectorToAlignLocal = Vector3.TransformNormal(vectorToAlign, Matrix.Transpose(SystemCoordinator.ReferenceBasis));
+                    Vector3 forwardVectorLocal = Vector3.TransformNormal(forwardVector, Matrix.Transpose(SystemCoordinator.ReferenceWorldMatrix));
+                    Vector3 vectorToAlignLocal = Vector3.TransformNormal(vectorToAlign, Matrix.Transpose(SystemCoordinator.ReferenceWorldMatrix));
                     float dot = Vector3.Dot(forwardVectorLocal, vectorToAlignLocal);
                     float epsilon = 1e-6f;
                     Vector3 rotationVector;
@@ -276,31 +243,31 @@ namespace IngameScript
 
                     float yawError = (float)Math.Atan2(-alignedMatrixLocal.M13, alignedMatrixLocal.M11);
                     float pitchError = (float)Math.Atan2(-alignedMatrixLocal.M32, alignedMatrixLocal.M22);
-                    float yawCorrection = _yawController.Run(yawError, timeDelta);
-                    float pitchCorrection = _pitchController.Run(pitchError, timeDelta);
+                    float yawCorrection = _yawController.Run(yawError, (float)timeDelta);
+                    float pitchCorrection = _pitchController.Run(pitchError, (float)timeDelta);
 
                     foreach (IMyGyro gyro in _gyros)
                     {
-                        gyro.Pitch = -pitchCorrection;
-                        gyro.Yaw = -yawCorrection;
+                        gyro.Pitch = pitchCorrection;
+                        gyro.Yaw = yawCorrection;
                     }
 
 
-                    foreach (var thrusterInfo in _thrusterInfos)
+                    foreach (var thruster in _thrusters.Values)
                     {
                         Vector3 desiredThrustVector = accelVector * _missileMass;
-                        float maxThrust = _maxThrust[thrusterInfo.Direction];
 
-                        if (Vector3.Dot(vectorToAlign, forwardVector) > 0.9f && maxThrust != 0)
+                        if (Vector3.Dot(vectorToAlign, forwardVector) > 0.9f)
                         {
-                            thrusterInfo.Thruster.ThrustOverridePercentage = MathHelper.Clamp(Vector3.Dot(desiredThrustVector, thrusterInfo.Vector) / maxThrust, 0f, 1f);
+                            thruster.ThrustOverride = Vector3.Dot(desiredThrustVector, thruster.Vector);
                         }
                         else
                         {
-                            thrusterInfo.Thruster.ThrustOverridePercentage = 0;
+                            thruster.ThrustOverride = 0;
                         }
                     }
                 }
+                Time = time;
             }
 
             private void ClampAndAlign(Vector3 currentVectorToAlign, ref Vector3 accelVector, out Vector3 newVectorToAlign)
@@ -369,6 +336,11 @@ namespace IngameScript
                     return;
                 }
                 Stage = MissileStage.Active;
+            }
+
+            public void Deactivate()
+            {
+                Stage = MissileStage.Idle;
             }
 
             public void Launch()
