@@ -33,8 +33,6 @@ namespace IngameScript
             private List<IMyWarhead> _payload = new List<IMyWarhead>();
             private Dictionary<Direction, ThrusterGroup> _thrusters = new Dictionary<Direction, ThrusterGroup>();
 
-            private double _lastRunTime;
-
             private MissileGuidance _missileGuidance;
             private PIDControl _pitchController;
             private PIDControl _yawController;
