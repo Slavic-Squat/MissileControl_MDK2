@@ -31,7 +31,7 @@ namespace IngameScript
             private List<Gyro> _gyros = new List<Gyro>();
             private IMyShipConnector _connector;
             private List<IMyWarhead> _payload = new List<IMyWarhead>();
-            private Dictionary<Direction, ThrusterGroup> _thrusters = new Dictionary<Direction, ThrusterGroup>();
+            private Dictionary<Direction, ThrusterGroup> _thrusterGroups = new Dictionary<Direction, ThrusterGroup>();
 
             private MissileGuidance _missileGuidance;
             private PIDControl _pitchController;
@@ -74,14 +74,14 @@ namespace IngameScript
 
             private void GetBlocks()
             {
-                _thrusters[Direction.Up] = new ThrusterGroup(Direction.Up, AllGridBlocks.Where(b => b is IMyThrust && b.CustomName.Contains("Up")).Select(b => new Thruster(b as IMyThrust, Direction.Up)).ToArray());
-                _thrusters[Direction.Down] = new ThrusterGroup(Direction.Down, AllGridBlocks.Where(b => b is IMyThrust && b.CustomName.Contains("Down")).Select(b => new Thruster(b as IMyThrust, Direction.Down)).ToArray());
-                _thrusters[Direction.Left] = new ThrusterGroup(Direction.Left, AllGridBlocks.Where(b => b is IMyThrust && b.CustomName.Contains("Left")).Select(b => new Thruster(b as IMyThrust, Direction.Left)).ToArray());
-                _thrusters[Direction.Right] = new ThrusterGroup(Direction.Right, AllGridBlocks.Where(b => b is IMyThrust && b.CustomName.Contains("Right")).Select(b => new Thruster(b as IMyThrust, Direction.Right)).ToArray());
-                _thrusters[Direction.Forward] = new ThrusterGroup(Direction.Forward, AllGridBlocks.Where(b => b is IMyThrust && b.CustomName.Contains("Forward")).Select(b => new Thruster(b as IMyThrust, Direction.Forward)).ToArray());
-                _thrusters[Direction.Backward] = new ThrusterGroup(Direction.Backward, AllGridBlocks.Where(b => b is IMyThrust && b.CustomName.Contains("Backward")).Select(b => new Thruster(b as IMyThrust, Direction.Backward)).ToArray());
+                _thrusterGroups[Direction.Up] = new ThrusterGroup(Direction.Up, AllGridBlocks.Where(b => b is IMyThrust && b.CustomName.Contains("Up")).Select(b => new Thruster(b as IMyThrust, Direction.Up)).ToArray());
+                _thrusterGroups[Direction.Down] = new ThrusterGroup(Direction.Down, AllGridBlocks.Where(b => b is IMyThrust && b.CustomName.Contains("Down")).Select(b => new Thruster(b as IMyThrust, Direction.Down)).ToArray());
+                _thrusterGroups[Direction.Left] = new ThrusterGroup(Direction.Left, AllGridBlocks.Where(b => b is IMyThrust && b.CustomName.Contains("Left")).Select(b => new Thruster(b as IMyThrust, Direction.Left)).ToArray());
+                _thrusterGroups[Direction.Right] = new ThrusterGroup(Direction.Right, AllGridBlocks.Where(b => b is IMyThrust && b.CustomName.Contains("Right")).Select(b => new Thruster(b as IMyThrust, Direction.Right)).ToArray());
+                _thrusterGroups[Direction.Forward] = new ThrusterGroup(Direction.Forward, AllGridBlocks.Where(b => b is IMyThrust && b.CustomName.Contains("Forward")).Select(b => new Thruster(b as IMyThrust, Direction.Forward)).ToArray());
+                _thrusterGroups[Direction.Backward] = new ThrusterGroup(Direction.Backward, AllGridBlocks.Where(b => b is IMyThrust && b.CustomName.Contains("Backward")).Select(b => new Thruster(b as IMyThrust, Direction.Backward)).ToArray());
 
-                if (_thrusters.Count == 0)
+                if (_thrusterGroups.Count == 0)
                 {
                     DebugWrite("Error: no thrusters found!\n", true);
                     throw new Exception("No thrusters found!\n");
@@ -110,8 +110,8 @@ namespace IngameScript
 
             private void Init()
             {
-                _maxForwardAccel = _thrusters[Direction.Forward].MaxThrust / _missileMass;
-                _maxRadialAccel = _thrusters[Direction.Right].MaxThrust / _missileMass;
+                _maxForwardAccel = _thrusterGroups[Direction.Forward].MaxThrust / _missileMass;
+                _maxRadialAccel = _thrusterGroups[Direction.Right].MaxThrust / _missileMass;
                 _maxAccel = (float)Math.Sqrt(_maxForwardAccel * _maxForwardAccel + _maxRadialAccel * _maxRadialAccel);
 
                 _pitchController = new PIDControl(_kp, _ki, _kd);
@@ -131,11 +131,11 @@ namespace IngameScript
 
                 if ( Stage == MissileStage.Idle)
                 {
-                    foreach (var thruster in _thrusters.Values)
+                    foreach (var thrusterGroup in _thrusterGroups.Values)
                     {
-                        thruster.ThrustOverride = 0;
+                        thrusterGroup.ThrustOverride = 0;
                     }
-                    foreach (IMyGyro gyro in _gyros)
+                    foreach (Gyro gyro in _gyros)
                     {
                         gyro.Pitch = 0;
                         gyro.Yaw = 0;
@@ -244,24 +244,24 @@ namespace IngameScript
                     float yawCorrection = _yawController.Run(yawError, (float)timeDelta);
                     float pitchCorrection = _pitchController.Run(pitchError, (float)timeDelta);
 
-                    foreach (IMyGyro gyro in _gyros)
+                    foreach (Gyro gyro in _gyros)
                     {
                         gyro.Pitch = pitchCorrection;
                         gyro.Yaw = yawCorrection;
                     }
 
 
-                    foreach (var thruster in _thrusters.Values)
+                    foreach (var thrusterGroup in _thrusterGroups.Values)
                     {
                         Vector3 desiredThrustVector = accelVector * _missileMass;
 
                         if (Vector3.Dot(vectorToAlign, forwardVector) > 0.9f)
                         {
-                            thruster.ThrustOverride = Vector3.Dot(desiredThrustVector, thruster.Vector);
+                            thrusterGroup.ThrustOverride = Vector3.Dot(desiredThrustVector, thrusterGroup.Vector);
                         }
                         else
                         {
-                            thruster.ThrustOverride = 0;
+                            thrusterGroup.ThrustOverride = 0;
                         }
                     }
                 }
@@ -343,7 +343,7 @@ namespace IngameScript
 
             public void Launch()
             {
-                if (Stage != MissileStage.Active)
+                if (Stage != MissileStage.Active || !_launcher.IsValid)
                 {
                     return;
                 }

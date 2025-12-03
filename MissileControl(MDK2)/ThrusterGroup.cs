@@ -26,7 +26,7 @@ namespace IngameScript
         {
             public List<Thruster> Thrusters { get; private set; }
             public Direction Direction { get; private set; }
-            public Vector3 Vector => Thrusters[0].Vector;
+            public Vector3 Vector => Thrusters.Count > 0 ? Thrusters[0].Vector : Vector3.Zero;
             public float MaxThrust => Thrusters.Sum(t => t.MaxThrust);
             public float ThrustOverride
             {

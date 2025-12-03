@@ -187,7 +187,7 @@ namespace IngameScript
                     CommunicationHandler.SendBroadcast(selfLite.Serialize(), "AllMissileInfo", false);
                 }
                 
-                if (MissileControl.Stage >= MissileStage.Flying && !CommunicationHandler.CanReach(LauncherAddress))
+                if (MissileControl.Stage >= MissileStage.Flying && (!CommunicationHandler.CanReach(LauncherAddress) || !Target.IsValid))
                 {
                     AbortMissile();
                 }
@@ -229,11 +229,14 @@ namespace IngameScript
 
             private void DeactivateMissile()
             {
-                _functionalBlocks.ForEach(b => { if (!ReferenceEquals(b, MePB)) b.Enabled = false; });
+                _functionalBlocks.ForEach(b => { if (!ReferenceEquals(b, MePB) && !(b is IMyShipConnector)) b.Enabled = false; });
+                MissileControl.Deactivate();
             }
 
             private void LaunchMissile()
             {
+                if (!Launcher.IsValid) return;
+
                 if (_soundBlock != null)
                 {
                     Random rand = new Random();
