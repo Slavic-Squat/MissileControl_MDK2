@@ -251,13 +251,15 @@ namespace IngameScript
                     }
 
 
+                    float alignment = Vector3.Dot(vectorToAlign, forwardVector);
+                    Vector3 desiredThrustVector = accelVector * _missileMass;
                     foreach (var thrusterGroup in _thrusterGroups.Values)
                     {
-                        Vector3 desiredThrustVector = accelVector * _missileMass;
-
-                        if (Vector3.Dot(vectorToAlign, forwardVector) > 0.9f)
+                        if (alignment > 0.9f)
                         {
-                            thrusterGroup.ThrustOverride = Vector3.Dot(desiredThrustVector, thrusterGroup.Vector);
+                            float value = Vector3.Dot(desiredThrustVector, thrusterGroup.Vector);
+                            if (value < 0) value = 0;
+                            thrusterGroup.ThrustOverride = value;
                         }
                         else
                         {
