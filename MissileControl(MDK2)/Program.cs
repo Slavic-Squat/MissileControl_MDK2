@@ -27,7 +27,7 @@ namespace IngameScript
         public static Action<string, bool> DebugWrite { get; private set; }
         public static IMyProgrammableBlock MePB { get; private set; }
         public static IMyGridTerminalSystem GTS { get; private set; }
-        public static List<IMyTerminalBlock> AllGridBlocks = new List<IMyTerminalBlock>();
+        public static List<IMyTerminalBlock> AllGridBlocks { get; private set; } = new List<IMyTerminalBlock>();
         public static IMyIntergridCommunicationSystem IGCS { get; private set; }
         public static IMyGridProgramRuntimeInfo RuntimeInfo { get; private set; }
 
