@@ -24,7 +24,6 @@ namespace IngameScript
     {
         public class SystemCoordinator
         {
-            public static double SystemTime { get; private set; }
             public static double GlobalTime { get; private set; }
             public static IMyShipController ReferenceController { get; private set; }
             public static Matrix ReferenceWorldMatrix => ReferenceController.WorldMatrix;
@@ -32,11 +31,7 @@ namespace IngameScript
             public static Vector3 ReferenceVelocity => ReferenceController.GetShipVelocities().LinearVelocity;
             public static long SelfID => ReferenceController.CubeGrid.EntityId;
 
-            public MyIni Config = new MyIni();
-            public CommunicationHandler CommunicationHandler { get; private set; }
-            public CommandHandler CommandHandler { get; private set; }
             public MissileControl MissileControl { get; private set; }
-
             public long LauncherAddress { get; private set; }
             public MissileStage Stage => MissileControl.Stage;
             public MissileType Type { get; private set; }
@@ -45,7 +40,9 @@ namespace IngameScript
             public EntityInfo Self { get; private set; }
             public EntityInfo Target { get; private set; }
             public EntityInfo Launcher { get; private set; }
+            public double Time { get; private set; }
 
+            private double _globalTimeOffset;
             private IMySoundBlock _soundBlock;
             private List<IMyFunctionalBlock> _functionalBlocks = new List<IMyFunctionalBlock>();
             public SystemCoordinator()
@@ -56,11 +53,6 @@ namespace IngameScript
 
             private void Init()
             {
-                Config = new MyIni();
-                if (!Config.TryParse(MePB.CustomData))
-                {
-                    Config.Clear();
-                }
                 Config.Set("Config", "MissileID", SelfID);
                 Config.Set("Config", "MissileAddress", IGCS.Me);
 
@@ -75,9 +67,6 @@ namespace IngameScript
 
                 float missileMass = Config.Get("Config", "Mass").ToSingle(10000);
                 Config.Set("Config", "Mass", missileMass);
-
-                long secureBroadcastPIN = Config.Get("Config", "SecureBroadcastPIN").ToInt64(123456);
-                Config.Set("Config", "SecureBroadcastPIN", secureBroadcastPIN);
 
                 float maxSpeed = Config.Get("Config", "MaxSpeed").ToSingle(100);
                 Config.Set("Config", "MaxSpeed", maxSpeed);
@@ -97,22 +86,18 @@ namespace IngameScript
                 float kd = Config.Get("Config", "Kd").ToSingle(0f);
                 Config.Set("Config", "Kd", kd);
 
-                MePB.CustomData = Config.ToString();
                 MissileControl = new MissileControl(0, missileMass, maxSpeed, Type, GuidanceType, Payload, m, n, kp, ki, kd);
-                CommunicationHandler = new CommunicationHandler(0, secureBroadcastPIN);
 
-                CommandHandler = new CommandHandler();
-
-                CommunicationHandler.RegisterTag("LauncherInfo", true);
-                CommunicationHandler.RegisterTag("TargetInfo", true);
-                CommunicationHandler.RegisterTag("Commands", true);
-                CommandHandler.RegisterCommand("SYNC_CLOCK", (args) => SyncClock(args[0]));
-                CommandHandler.RegisterCommand("ON", (args) => TurnOn());
-                CommandHandler.RegisterCommand("OFF", (args) => TurnOff());
-                CommandHandler.RegisterCommand("ACTIVATE", (args) => ActivateMissile(args[0], args[1]));
-                CommandHandler.RegisterCommand("DEACTIVATE", (args) => DeactivateMissile());
-                CommandHandler.RegisterCommand("LAUNCH", (args) => LaunchMissile());
-                CommandHandler.RegisterCommand("ABORT", (args) => AbortMissile());
+                CommunicationHandler0.RegisterTag("LauncherInfo", true);
+                CommunicationHandler0.RegisterTag("TargetInfo", true);
+                CommunicationHandler0.RegisterTag("Commands", true);
+                CommandHandler0.RegisterCommand("SYNC_CLOCK", (args) => SyncClock(args[0]));
+                CommandHandler0.RegisterCommand("ON", (args) => TurnOn());
+                CommandHandler0.RegisterCommand("OFF", (args) => TurnOff());
+                CommandHandler0.RegisterCommand("ACTIVATE", (args) => ActivateMissile(args[0], args[1]));
+                CommandHandler0.RegisterCommand("DEACTIVATE", (args) => DeactivateMissile());
+                CommandHandler0.RegisterCommand("LAUNCH", (args) => LaunchMissile());
+                CommandHandler0.RegisterCommand("ABORT", (args) => AbortMissile());
             }
 
             private void GetBlocks()
@@ -129,20 +114,20 @@ namespace IngameScript
                 _functionalBlocks = AllGridBlocks.Where(b => b is IMyFunctionalBlock).Cast<IMyFunctionalBlock>().ToList();
             }
 
-            public void Run()
+            public void Run(double time)
             {
-                SystemTime += RuntimeInfo.TimeSinceLastRun.TotalSeconds;
-                GlobalTime += RuntimeInfo.TimeSinceLastRun.TotalSeconds;
-                DebugEcho($"System Time: {SystemTime:F2}s\n");
-                DebugWrite($"System Time: {SystemTime:F2}s\n", false);
-                DebugEcho($"Last Run Time: {RuntimeInfo.LastRunTimeMs:F2}ms\n");
-                DebugWrite($"Last Run Time: {RuntimeInfo.LastRunTimeMs:F2}ms\n", true);
-                CommunicationHandler.Recieve();
+                if (Time == 0)
+                {
+                    Time = time;
+                    return;
+                }
 
-                while (CommunicationHandler.HasMessage("LauncherInfo", true))
+                GlobalTime = time + _globalTimeOffset;
+
+                while (CommunicationHandler0.HasMessage("LauncherInfo", true))
                 {
                     MyIGCMessage msg;
-                    if (CommunicationHandler.TryRetrieveMessage("LauncherInfo", true, out msg))
+                    if (CommunicationHandler0.TryRetrieveMessage("LauncherInfo", true, out msg))
                     {
                         if (msg.Source != LauncherAddress) continue;
                         byte[] bytes = Convert.FromBase64String(msg.Data as string);
@@ -150,10 +135,10 @@ namespace IngameScript
                     }
                 }
 
-                while (CommunicationHandler.HasMessage("TargetInfo", true))
+                while (CommunicationHandler0.HasMessage("TargetInfo", true))
                 {
                     MyIGCMessage msg;
-                    if (CommunicationHandler.TryRetrieveMessage("TargetInfo", true, out msg))
+                    if (CommunicationHandler0.TryRetrieveMessage("TargetInfo", true, out msg))
                     {
                         if (msg.Source != LauncherAddress) continue;
                         byte[] bytes = Convert.FromBase64String(msg.Data as string);
@@ -161,41 +146,36 @@ namespace IngameScript
                     }
                 }
 
-                while (CommunicationHandler.HasMessage("Commands", true))
+                while (CommunicationHandler0.HasMessage("Commands", true))
                 {
                     MyIGCMessage msg;
-                    if (CommunicationHandler.TryRetrieveMessage("Commands", true, out msg))
+                    if (CommunicationHandler0.TryRetrieveMessage("Commands", true, out msg))
                     {
                         if (msg.Source != LauncherAddress) continue;
                         string command = msg.Data as string;
-                        Command(command);
+                        CommandHandler0.RunCommands(command);
                     }
                 }
 
                 MissileControl.UpdateTarget(Target);
                 MissileControl.UpdateLauncher(Launcher);
-                MissileControl.Run(SystemTime);
+                MissileControl.Run(time);
 
                 if (MissileControl.Stage > MissileStage.Launching)
                 {
                     MissileInfo missileInfo = new MissileInfo(Launcher.EntityID, Target.EntityID, Stage, Type, GuidanceType, Payload);
                     MissileInfoLite missileInfoLite = new MissileInfoLite(Launcher.EntityID);
-                    Self = new EntityInfo(SelfID, ReferencePosition, ReferenceVelocity, SystemTime, missileInfo);
-                    EntityInfo selfLite = new EntityInfo(SelfID, ReferencePosition, ReferenceVelocity, SystemTime, missileInfoLite);
+                    Self = new EntityInfo(SelfID, ReferencePosition, ReferenceVelocity, GlobalTime, missileInfo);
+                    EntityInfo selfLite = new EntityInfo(SelfID, ReferencePosition, ReferenceVelocity, GlobalTime, missileInfoLite);
 
-                    CommunicationHandler.SendUnicast(Self.Serialize(), LauncherAddress, "MyMissileInfo", true);
-                    CommunicationHandler.SendBroadcast(selfLite.Serialize(), "AllMissileInfo", false);
+                    CommunicationHandler0.SendUnicast(Self.Serialize(), LauncherAddress, "MyMissileInfo", true);
+                    CommunicationHandler0.SendBroadcast(selfLite.Serialize(), "AllMissileInfo", false);
                 }
-                
-                if (MissileControl.Stage >= MissileStage.Flying && (!CommunicationHandler.CanReach(LauncherAddress) || !Target.IsValid))
+
+                if (MissileControl.Stage >= MissileStage.Flying && (!CommunicationHandler0.CanReach(LauncherAddress) || !Target.IsValid))
                 {
                     AbortMissile();
                 }
-            }
-
-            public void Command(string command)
-            {
-                CommandHandler.RunCommands(command);
             }
 
             private void SyncClock(string timeString)
@@ -203,7 +183,7 @@ namespace IngameScript
                 double time;
                 if (double.TryParse(timeString, out time))
                 {
-                    GlobalTime = time;
+                    _globalTimeOffset = time - Time;
                 }
             }
 

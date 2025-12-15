@@ -39,7 +39,7 @@ namespace IngameScript
                 _secureBroadcastPIN = secureBroadcastPIN;
             }
 
-            public void Recieve()
+            public void Receive()
             {
                 while (_unicastListener.HasPendingMessage)
                 {
