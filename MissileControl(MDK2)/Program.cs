@@ -78,7 +78,7 @@ namespace IngameScript
 
             if (argument != null)
             {
-                _systemCoordinator.Command(argument);
+                CommandHandler0.RunCommands(argument);
             }
             CommunicationHandler0.Receive();
             _systemCoordinator.Run(SystemTime);
