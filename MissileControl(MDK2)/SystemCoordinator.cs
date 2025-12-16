@@ -56,14 +56,14 @@ namespace IngameScript
                 Config.Set("Config", "MissileID", SelfID);
                 Config.Set("Config", "MissileAddress", IGCS.Me);
 
-                Type = GetMissileType(Config.Get("Config", "Type").ToString(GetDisplayString(MissileType.Unknown)));
-                Config.Set("Config", "Type", GetDisplayString(Type));
+                Type = MissileEnumHelper.GetMissileType(Config.Get("Config", "Type").ToString(MissileEnumHelper.GetDisplayString(MissileType.Unknown)));
+                Config.Set("Config", "Type", MissileEnumHelper.GetDisplayString(Type));
 
-                GuidanceType = GetMissileGuidanceType(Config.Get("Config", "GuidanceType").ToString(GetDisplayString(MissileGuidanceType.Unknown)));
-                Config.Set("Config", "GuidanceType", GetDisplayString(GuidanceType));
+                GuidanceType = MissileEnumHelper.GetMissileGuidanceType(Config.Get("Config", "GuidanceType").ToString(MissileEnumHelper.GetDisplayString(MissileGuidanceType.Unknown)));
+                Config.Set("Config", "GuidanceType", MissileEnumHelper.GetDisplayString(GuidanceType));
 
-                Payload = GetMissilePayload(Config.Get("Config", "Payload").ToString(GetDisplayString(MissilePayload.Unknown)));
-                Config.Set("Config", "Payload", GetDisplayString(Payload));
+                Payload = MissileEnumHelper.GetMissilePayload(Config.Get("Config", "Payload").ToString(MissileEnumHelper.GetDisplayString(MissilePayload.Unknown)));
+                Config.Set("Config", "Payload", MissileEnumHelper.GetDisplayString(Payload));
 
                 float missileMass = Config.Get("Config", "Mass").ToSingle(10000);
                 Config.Set("Config", "Mass", missileMass);
