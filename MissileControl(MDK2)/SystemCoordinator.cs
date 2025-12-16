@@ -56,14 +56,14 @@ namespace IngameScript
                 Config.Set("Config", "MissileID", SelfID);
                 Config.Set("Config", "MissileAddress", IGCS.Me);
 
-                Type = GetMissileType(Config.Get("Config", "Type").ToString(GetName(MissileType.Unknown)));
-                Config.Set("Config", "Type", GetName(Type));
+                Type = GetMissileType(Config.Get("Config", "Type").ToString(GetDisplayString(MissileType.Unknown)));
+                Config.Set("Config", "Type", GetDisplayString(Type));
 
-                GuidanceType = GetMissileGuidanceType(Config.Get("Config", "GuidanceType").ToString(GetName(MissileGuidanceType.Unknown)));
-                Config.Set("Config", "GuidanceType", GetName(GuidanceType));
+                GuidanceType = GetMissileGuidanceType(Config.Get("Config", "GuidanceType").ToString(GetDisplayString(MissileGuidanceType.Unknown)));
+                Config.Set("Config", "GuidanceType", GetDisplayString(GuidanceType));
 
-                Payload = GetMissilePayload(Config.Get("Config", "Payload").ToString(GetName(MissilePayload.Unknown)));
-                Config.Set("Config", "Payload", GetName(Payload));
+                Payload = GetMissilePayload(Config.Get("Config", "Payload").ToString(GetDisplayString(MissilePayload.Unknown)));
+                Config.Set("Config", "Payload", GetDisplayString(Payload));
 
                 float missileMass = Config.Get("Config", "Mass").ToSingle(10000);
                 Config.Set("Config", "Mass", missileMass);
