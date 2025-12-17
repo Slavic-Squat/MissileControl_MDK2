@@ -24,7 +24,6 @@ namespace IngameScript
     {
         public class MissileControl
         {
-            public int ID { get; private set; }
             public double Time { get; private set; }
             public MissileStage Stage { get; private set; } = MissileStage.Idle;
 
@@ -51,13 +50,13 @@ namespace IngameScript
             private MissileType _type;
             private MissileGuidanceType _guidanceType;
             private MissilePayload _payloadType;
+            private Direction _launchDirection;
 
             private EntityInfo _target;
-            private EntityInfo _launcher;
+            private double _launchTime;
 
-            public MissileControl(int ID, float missileMass, float maxSpeed, MissileType type, MissileGuidanceType guidanceType, MissilePayload payload, float m, float n, float kp, float ki, float kd)
+            public MissileControl(float missileMass, float maxSpeed, MissileType type, MissileGuidanceType guidanceType, MissilePayload payload, float m, float n, float kp, float ki, float kd, Direction launchDirection)
             {
-                this.ID = ID;
                 _missileMass = missileMass;
                 _maxSpeed = maxSpeed;
                 _type = type;
@@ -68,6 +67,7 @@ namespace IngameScript
                 _kp = kp;
                 _ki = ki;
                 _kd = kd;
+                _launchDirection = launchDirection;
                 GetBlocks();
                 Init();
             }
@@ -151,16 +151,10 @@ namespace IngameScript
                     Vector3 missileVel = SystemCoordinator.ReferenceVelocity;
 
                     Vector3 estimatedTargetPos = _target.Position;
-                    Vector3 estimatedLauncherPos = _launcher.Position;
                     if (_target.TimeRecorded < globalTime)
                     {
                         double secSinceLastUpdate = globalTime - _target.TimeRecorded;
                         estimatedTargetPos = _target.Position + _target.Velocity * (float)secSinceLastUpdate;
-                    }
-                    if (_launcher.TimeRecorded < globalTime)
-                    {
-                        double secSinceLastUpdate = globalTime - _launcher.TimeRecorded;
-                        estimatedLauncherPos = _launcher.Position + _launcher.Velocity * (float)secSinceLastUpdate;
                     }
                     Vector3 range = estimatedTargetPos - missilePos;
                     float dist = range.Length();
@@ -170,6 +164,7 @@ namespace IngameScript
                     float timeToTarget = dist / closingSpeed;
 
                     Vector3 forwardVector = SystemCoordinator.ReferenceWorldMatrix.Forward;
+                    
                     Vector3 vectorToAlign;
                     Vector3 accelVector;
                     switch (Stage)
@@ -177,10 +172,36 @@ namespace IngameScript
                         case MissileStage.Launching:
 
                             _connector.Disconnect();
+                            Vector3 launchVector;
+                            float launchAccel = _thrusterGroups[_launchDirection].MaxThrust / _missileMass;
+                            switch (_launchDirection)
+                            {
+                                case Direction.Up:
+                                    launchVector = SystemCoordinator.ReferenceWorldMatrix.Up;
+                                    break;
+                                case Direction.Down:
+                                    launchVector = SystemCoordinator.ReferenceWorldMatrix.Down;
+                                    break;
+                                case Direction.Left:
+                                    launchVector = SystemCoordinator.ReferenceWorldMatrix.Left;
+                                    break;
+                                case Direction.Right:
+                                    launchVector = SystemCoordinator.ReferenceWorldMatrix.Right;
+                                    break;
+                                case Direction.Forward:
+                                    launchVector = SystemCoordinator.ReferenceWorldMatrix.Forward;
+                                    break;
+                                case Direction.Backward:
+                                    launchVector = SystemCoordinator.ReferenceWorldMatrix.Backward;
+                                    break;
+                                default:
+                                    launchVector = SystemCoordinator.ReferenceWorldMatrix.Forward;
+                                    break;
+                            }
                             vectorToAlign = forwardVector;
-                            accelVector = forwardVector * _maxForwardAccel;
+                            accelVector = launchVector * launchAccel;
 
-                            if ((missilePos - estimatedLauncherPos).Length() > 100)
+                            if (time - _launchTime > 3)
                             {
                                 Stage = MissileStage.Flying;
                             }
@@ -345,21 +366,17 @@ namespace IngameScript
 
             public void Launch()
             {
-                if (Stage != MissileStage.Active || !_launcher.IsValid)
+                if (Stage != MissileStage.Active)
                 {
                     return;
                 }
                 Stage = MissileStage.Launching;
+                _launchTime = Time;
             }
 
             public void UpdateTarget(EntityInfo target)
             {
                 _target = target;
-            }
-
-            public void UpdateLauncher(EntityInfo launcher)
-            {
-                _launcher = launcher;
             }
 
             public void Abort()

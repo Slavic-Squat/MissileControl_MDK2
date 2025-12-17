@@ -29,7 +29,47 @@ namespace IngameScript
 
         public static class MiscEnumHelper
         {
+            public static Direction GetDirection(string dirStr)
+            {
+                switch (dirStr.ToUpper())
+                {
+                    case "LEFT":
+                        return Direction.Left;
+                    case "RIGHT":
+                        return Direction.Right;
+                    case "UP":
+                        return Direction.Up;
+                    case "DOWN":
+                        return Direction.Down;
+                    case "FORWARD":
+                        return Direction.Forward;
+                    case "BACKWARD":
+                        return Direction.Backward;
+                    default:
+                        return Direction.Forward;
+                }
+            }
 
+            public static string GetDirectionStr(Direction dir)
+            {
+                switch (dir)
+                {
+                    case Direction.Left:
+                        return "LEFT";
+                    case Direction.Right:
+                        return "RIGHT";
+                    case Direction.Up:
+                        return "UP";
+                    case Direction.Down:
+                        return "DOWN";
+                    case Direction.Forward:
+                        return "FORWARD";
+                    case Direction.Backward:
+                        return "BACKWARD";
+                    default:
+                        return "FORWARD";
+                }
+            }
         }
     }
 }
