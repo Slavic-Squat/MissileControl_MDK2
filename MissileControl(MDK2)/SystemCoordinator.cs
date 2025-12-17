@@ -125,6 +125,7 @@ namespace IngameScript
                 }
 
                 GlobalTime = time + _globalTimeOffset;
+                DebugEcho($"Global Time: {GlobalTime:F2}s");
 
                 while (CommunicationHandler0.HasMessage("TargetInfo", true))
                 {
@@ -166,6 +167,7 @@ namespace IngameScript
                 {
                     AbortMissile();
                 }
+                Time = time;
             }
 
             private void SyncClock(string timeString)
