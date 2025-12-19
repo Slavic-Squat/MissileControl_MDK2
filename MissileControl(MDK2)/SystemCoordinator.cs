@@ -91,8 +91,8 @@ namespace IngameScript
 
                 MissileControl = new MissileControl(missileMass, maxSpeed, Type, GuidanceType, Payload, m, n, kp, ki, kd, launchDirection);
 
-                CommunicationHandler0.RegisterTag("TargetInfo", true);
-                CommunicationHandler0.RegisterTag("Commands", true);
+                CommunicationHandler0.RegisterTag("TARGET_INFO", true);
+                CommunicationHandler0.RegisterTag("COMMANDS", true);
                 CommandHandler0.RegisterCommand("SYNC_CLOCK", (args) => SyncClock(args[0]));
                 CommandHandler0.RegisterCommand("ON", (args) => TurnOn());
                 CommandHandler0.RegisterCommand("OFF", (args) => TurnOff());
@@ -127,10 +127,10 @@ namespace IngameScript
                 GlobalTime = time + _globalTimeOffset;
                 DebugEcho($"Global Time: {GlobalTime:F2}s");
 
-                while (CommunicationHandler0.HasMessage("TargetInfo", true))
+                while (CommunicationHandler0.HasMessage("TARGET_INFO", true))
                 {
                     MyIGCMessage msg;
-                    if (CommunicationHandler0.TryRetrieveMessage("TargetInfo", true, out msg))
+                    if (CommunicationHandler0.TryRetrieveMessage("TARGET_INFO", true, out msg))
                     {
                         if (msg.Source != LauncherAddress) continue;
                         byte[] bytes = Convert.FromBase64String(msg.Data as string);
@@ -138,10 +138,10 @@ namespace IngameScript
                     }
                 }
 
-                while (CommunicationHandler0.HasMessage("Commands", true))
+                while (CommunicationHandler0.HasMessage("COMMANDS", true))
                 {
                     MyIGCMessage msg;
-                    if (CommunicationHandler0.TryRetrieveMessage("Commands", true, out msg))
+                    if (CommunicationHandler0.TryRetrieveMessage("COMMANDS", true, out msg))
                     {
                         if (msg.Source != LauncherAddress) continue;
                         string command = msg.Data as string;
@@ -159,8 +159,8 @@ namespace IngameScript
                     Self = new EntityInfo(SelfID, ReferencePosition, ReferenceVelocity, GlobalTime, missileInfo);
                     EntityInfo selfLite = new EntityInfo(SelfID, ReferencePosition, ReferenceVelocity, GlobalTime, missileInfoLite);
 
-                    CommunicationHandler0.SendUnicast(Self.Serialize(), LauncherAddress, "MyMissileInfo", true);
-                    CommunicationHandler0.SendBroadcast(selfLite.Serialize(), "AllMissileInfo", false);
+                    CommunicationHandler0.SendUnicast(Self.Serialize(), LauncherAddress, "MY_MISSILE_INFO", true);
+                    CommunicationHandler0.SendBroadcast(selfLite.Serialize(), "ALL_MISSILE_INFO", false);
                 }
 
                 if (MissileControl.Stage >= MissileStage.Flying && (!CommunicationHandler0.CanReach(LauncherAddress) || !Target.IsValid))

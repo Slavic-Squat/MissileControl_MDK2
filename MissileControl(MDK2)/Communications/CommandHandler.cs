@@ -38,6 +38,7 @@ namespace IngameScript
                 {
                     return;
                 }
+                commandsString = commandsString.ToUpper();
                 string[] separatedCommandStrings = commandsString.Split('|', '\n');
                 foreach (string commandString in separatedCommandStrings)
                 {
@@ -65,6 +66,7 @@ namespace IngameScript
 
             public void RegisterCommand(string commandName, Action<string[]> commandAction)
             {
+                commandName = commandName.ToUpper();
                 _commands[commandName] = commandAction;
             }
         }
