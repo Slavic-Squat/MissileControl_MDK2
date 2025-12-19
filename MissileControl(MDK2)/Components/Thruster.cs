@@ -42,12 +42,18 @@ namespace IngameScript
             public Thruster(IMyThrust thruster, Direction direction)
             {
                 ThrusterBlock = thruster;
+                if (ThrusterBlock == null)
+                {
+                    DebugWrite($"Thruster is null!\n", true);
+                    throw new Exception($"Thruster is null!\n");
+                }
                 Direction = direction;
             }
 
             public Thruster(string thrusterName, Direction direction)
             {
-                ThrusterBlock = AllGridBlocks.Find(b => b is IMyThrust && b.CustomName.Contains(thrusterName)) as IMyThrust;
+                thrusterName = thrusterName.ToUpper();
+                ThrusterBlock = AllGridBlocks.Find(b => b is IMyThrust && b.CustomName.ToUpper().Contains(thrusterName)) as IMyThrust;
                 if (ThrusterBlock == null)
                 {
                     DebugWrite($"Thruster '{thrusterName}' not found!\n", true);

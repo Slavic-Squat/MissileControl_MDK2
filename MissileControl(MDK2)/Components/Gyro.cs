@@ -44,11 +44,18 @@ namespace IngameScript
             public Gyro(IMyGyro gyro)
             {
                 GyroBlock = gyro;
+
+                if (GyroBlock == null)
+                {
+                    DebugWrite($"Gyro is null!\n", true);
+                    throw new Exception($"Gyro is null!\n");
+                }
             }
 
             public Gyro(string gyroName)
             {
-                GyroBlock = AllGridBlocks.Find(b => b is IMyGyro && b.CustomName.Contains(gyroName)) as IMyGyro;
+                gyroName = gyroName.ToUpper();
+                GyroBlock = AllGridBlocks.Find(b => b is IMyGyro && b.CustomName.ToUpper().Contains(gyroName)) as IMyGyro;
                 if (GyroBlock == null)
                 {
                     DebugWrite($"Gyro '{gyroName}' not found!\n", true);

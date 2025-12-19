@@ -74,12 +74,12 @@ namespace IngameScript
 
             private void GetBlocks()
             {
-                _thrusterGroups[Direction.Up] = new ThrusterGroup(Direction.Up, AllGridBlocks.Where(b => b is IMyThrust && b.CustomData.Contains("-Up")).Select(b => new Thruster(b as IMyThrust, Direction.Up)).ToArray());
-                _thrusterGroups[Direction.Down] = new ThrusterGroup(Direction.Down, AllGridBlocks.Where(b => b is IMyThrust && b.CustomData.Contains("-Down")).Select(b => new Thruster(b as IMyThrust, Direction.Down)).ToArray());
-                _thrusterGroups[Direction.Left] = new ThrusterGroup(Direction.Left, AllGridBlocks.Where(b => b is IMyThrust && b.CustomData.Contains("-Left")).Select(b => new Thruster(b as IMyThrust, Direction.Left)).ToArray());
-                _thrusterGroups[Direction.Right] = new ThrusterGroup(Direction.Right, AllGridBlocks.Where(b => b is IMyThrust && b.CustomData.Contains("-Right")).Select(b => new Thruster(b as IMyThrust, Direction.Right)).ToArray());
-                _thrusterGroups[Direction.Forward] = new ThrusterGroup(Direction.Forward, AllGridBlocks.Where(b => b is IMyThrust && b.CustomData.Contains("-Forward")).Select(b => new Thruster(b as IMyThrust, Direction.Forward)).ToArray());
-                _thrusterGroups[Direction.Backward] = new ThrusterGroup(Direction.Backward, AllGridBlocks.Where(b => b is IMyThrust && b.CustomData.Contains("-Backward")).Select(b => new Thruster(b as IMyThrust, Direction.Backward)).ToArray());
+                _thrusterGroups[Direction.Up] = new ThrusterGroup(Direction.Up, AllGridBlocks.Where(b => b is IMyThrust && b.CustomData.ToUpper().Contains("-UP")).Select(b => new Thruster(b as IMyThrust, Direction.Up)).ToArray());
+                _thrusterGroups[Direction.Down] = new ThrusterGroup(Direction.Down, AllGridBlocks.Where(b => b is IMyThrust && b.CustomData.ToUpper().Contains("-DOWN")).Select(b => new Thruster(b as IMyThrust, Direction.Down)).ToArray());
+                _thrusterGroups[Direction.Left] = new ThrusterGroup(Direction.Left, AllGridBlocks.Where(b => b is IMyThrust && b.CustomData.ToUpper().Contains("-LEFT")).Select(b => new Thruster(b as IMyThrust, Direction.Left)).ToArray());
+                _thrusterGroups[Direction.Right] = new ThrusterGroup(Direction.Right, AllGridBlocks.Where(b => b is IMyThrust && b.CustomData.ToUpper().Contains("-RIGHT")).Select(b => new Thruster(b as IMyThrust, Direction.Right)).ToArray());
+                _thrusterGroups[Direction.Forward] = new ThrusterGroup(Direction.Forward, AllGridBlocks.Where(b => b is IMyThrust && b.CustomData.ToUpper().Contains("-FORWARD")).Select(b => new Thruster(b as IMyThrust, Direction.Forward)).ToArray());
+                _thrusterGroups[Direction.Backward] = new ThrusterGroup(Direction.Backward, AllGridBlocks.Where(b => b is IMyThrust && b.CustomData.ToUpper().Contains("-BACKWARD")).Select(b => new Thruster(b as IMyThrust, Direction.Backward)).ToArray());
 
                 if (_thrusterGroups.Count == 0)
                 {

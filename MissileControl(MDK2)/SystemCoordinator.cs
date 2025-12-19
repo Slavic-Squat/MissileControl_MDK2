@@ -104,7 +104,7 @@ namespace IngameScript
 
             private void GetBlocks()
             {
-                ReferenceController = AllGridBlocks.Find(b => b is IMyShipController && b.CustomName.Contains("Missile Controller")) as IMyShipController;
+                ReferenceController = AllGridBlocks.Find(b => b is IMyShipController && b.CustomName.ToUpper().Contains("MISSILE CONTROLLER")) as IMyShipController;
                 if (ReferenceController == null)
                 {
                     DebugWrite("Error: missile controller not found!\n", true);
