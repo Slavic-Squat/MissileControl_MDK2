@@ -44,7 +44,6 @@ namespace IngameScript
 
             private double _globalTimeOffset;
             private IMySoundBlock _soundBlock;
-            private List<IMyFunctionalBlock> _functionalBlocks = new List<IMyFunctionalBlock>();
             public SystemCoordinator()
             {
                 GetBlocks();
@@ -112,8 +111,6 @@ namespace IngameScript
                 }
 
                 _soundBlock = AllGridBlocks.Find(b => b is IMySoundBlock) as IMySoundBlock;
-
-                _functionalBlocks = AllGridBlocks.Where(b => b is IMyFunctionalBlock).Cast<IMyFunctionalBlock>().ToList();
             }
 
             public void Run(double time)
@@ -191,7 +188,6 @@ namespace IngameScript
 
             private void ActivateMissile(string launcherAddressString, string launcherIDString, string timeString)
             {
-                _functionalBlocks.ForEach(b => b.Enabled = true);
                 long launcherAddress;
                 if (!long.TryParse(launcherAddressString, out launcherAddress)) return;
                 long launcherID;
@@ -204,7 +200,6 @@ namespace IngameScript
 
             private void DeactivateMissile()
             {
-                _functionalBlocks.ForEach(b => { if (!ReferenceEquals(b, MePB) && !(b is IMyShipConnector)) b.Enabled = false; });
                 MissileControl.Deactivate();
             }
 

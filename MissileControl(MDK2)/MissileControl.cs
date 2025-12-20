@@ -31,6 +31,10 @@ namespace IngameScript
             private IMyShipConnector _connector;
             private List<IMyWarhead> _payload = new List<IMyWarhead>();
             private Dictionary<Direction, ThrusterGroup> _thrusterGroups = new Dictionary<Direction, ThrusterGroup>();
+            private IMyRadioAntenna _antenna;
+            private List<GasTank> _h2Tanks = new List<GasTank>();
+            private List<Battery> _batteries = new List<Battery>();
+            private IMyRemoteControl _remoteCtrl;
 
             private MissileGuidance _missileGuidance;
             private PIDControl _pitchController;
@@ -106,6 +110,34 @@ namespace IngameScript
                     DebugWrite("Error: no warheads found!\n", true);
                     throw new Exception("No warheads found!\n");
                 }
+
+                _antenna = AllGridBlocks.Find(b => b is IMyRadioAntenna) as IMyRadioAntenna;
+                if (_antenna == null)
+                {
+                    DebugWrite("Error: no antenna found!\n", true);
+                    throw new Exception("No antenna found!\n");
+                }
+
+                _h2Tanks = AllGridBlocks.Where(b => b is IMyGasTank).Select(b => new GasTank(b as IMyGasTank)).ToList();
+                if (_h2Tanks.Count == 0)
+                {
+                    DebugWrite("Error: no hydrogen tanks found!\n", true);
+                    throw new Exception("No hydrogen tanks found!\n");
+                }
+
+                _batteries = AllGridBlocks.Where(b => b is IMyBatteryBlock).Select(b => new Battery(b as IMyBatteryBlock)).ToList();
+                if (_batteries.Count == 0)
+                {
+                    DebugWrite("Error: no batteries found!\n", true);
+                    throw new Exception("No batteries found!\n");
+                }
+
+                _remoteCtrl = AllGridBlocks.Find(b => b is IMyRemoteControl) as IMyRemoteControl;
+                if (_remoteCtrl == null)
+                {
+                    DebugWrite("Error: no remote control found!\n", true);
+                    throw new Exception("No remote control found!\n");
+                }
             }
 
             private void Init()
@@ -118,6 +150,15 @@ namespace IngameScript
                 _yawController = new PIDControl(_kp, _ki, _kd);
 
                 _missileGuidance = new MissileGuidance(_maxAccel, _m, _n, maxSpeed: _maxSpeed);
+
+                Deactivate();
+
+                _gyros.ForEach(g => g.GyroBlock.GyroOverride = true);
+                _remoteCtrl.DampenersOverride = false;
+                _remoteCtrl.SetAutoPilotEnabled(false);
+                _remoteCtrl.ControlThrusters = false;
+                _remoteCtrl.ControlWheels = false;
+                _remoteCtrl.SetValue("ControlGyros", false);
             }
 
             public void Run(double time)
@@ -129,20 +170,6 @@ namespace IngameScript
                 }
                 double globalTime = SystemCoordinator.GlobalTime;
 
-                if ( Stage == MissileStage.Idle)
-                {
-                    foreach (var thrusterGroup in _thrusterGroups.Values)
-                    {
-                        thrusterGroup.ThrustOverride = 0;
-                    }
-                    foreach (Gyro gyro in _gyros)
-                    {
-                        gyro.Pitch = 0;
-                        gyro.Yaw = 0;
-                        gyro.Roll = 0;
-                    }
-                    return;
-                }
                 if (Stage > MissileStage.Idle)
                 {
                     double timeDelta = time - Time;
@@ -357,11 +384,35 @@ namespace IngameScript
                     return;
                 }
                 Stage = MissileStage.Active;
+
+                _antenna.Enabled = true;
+                _h2Tanks.ForEach(t => t.TankBlock.Stockpile = false);
+                _batteries.ForEach(b => b.BatteryBlock.ChargeMode = ChargeMode.Discharge);
+
+                foreach (var thrusterGroup in _thrusterGroups.Values)
+                {
+                    thrusterGroup.Thrusters.ForEach(t => t.ThrusterBlock.Enabled = true);
+                }
+                _gyros.ForEach(g => g.GyroBlock.Enabled = true);
             }
 
             public void Deactivate()
             {
+                if (Stage >= MissileStage.Launching)
+                {
+                    return;
+                }
                 Stage = MissileStage.Idle;
+
+                _antenna.Enabled = false;
+                _h2Tanks.ForEach(t => t.TankBlock.Stockpile = true);
+                _batteries.ForEach(b => b.BatteryBlock.ChargeMode = ChargeMode.Recharge);
+                
+                foreach (var thrusterGroup in _thrusterGroups.Values)
+                {
+                    thrusterGroup.Thrusters.ForEach(t => t.ThrusterBlock.Enabled = false);
+                }
+                _gyros.ForEach(g => g.GyroBlock.Enabled = false);
             }
 
             public void Launch()
