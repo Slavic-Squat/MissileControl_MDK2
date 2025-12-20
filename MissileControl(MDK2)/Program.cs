@@ -38,7 +38,7 @@ namespace IngameScript
         public static int DebugCounter { get; set; } = 0;
 
         private const string _programName = "MissileControl";
-        private const string _programVersion = "1.0";
+        private const string _programVersion = "1.01";
 
         public Program()
         {

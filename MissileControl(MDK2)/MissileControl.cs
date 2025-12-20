@@ -159,6 +159,8 @@ namespace IngameScript
                 _remoteCtrl.ControlThrusters = true;
                 _remoteCtrl.ControlWheels = false;
                 _remoteCtrl.SetValue("ControlGyros", true);
+                _connector.IsParkingEnabled = false;
+                _connector.PullStrength = 1f;
             }
 
             public void Run(double time)
