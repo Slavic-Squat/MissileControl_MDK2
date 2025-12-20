@@ -156,9 +156,9 @@ namespace IngameScript
                 _gyros.ForEach(g => g.GyroBlock.GyroOverride = true);
                 _remoteCtrl.DampenersOverride = false;
                 _remoteCtrl.SetAutoPilotEnabled(false);
-                _remoteCtrl.ControlThrusters = false;
+                _remoteCtrl.ControlThrusters = true;
                 _remoteCtrl.ControlWheels = false;
-                _remoteCtrl.SetValue("ControlGyros", false);
+                _remoteCtrl.SetValue("ControlGyros", true);
             }
 
             public void Run(double time)
@@ -255,7 +255,7 @@ namespace IngameScript
                             ClampAndAlign(vectorToAlign, ref accelVector, out vectorToAlign);
 
                             _payload.ForEach(w => w.IsArmed = true);
-                            if (timeToTarget <= 0)
+                            if (dist <= 1)
                             {
                                 _payload.ForEach(w => w.Detonate());
                             }
