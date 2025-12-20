@@ -432,7 +432,7 @@ namespace IngameScript
 
             public void Abort()
             {
-                if (Stage > MissileStage.Launching)
+                if (Stage > MissileStage.Launching && (Time - _launchTime) > 10)
                 {
                     foreach (IMyWarhead warhead in _payload)
                     {
