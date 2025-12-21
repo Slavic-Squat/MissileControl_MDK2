@@ -37,7 +37,7 @@ namespace IngameScript
 
         private static List<IMyTerminalBlock> _allGridBlocks = new List<IMyTerminalBlock>();
         private const string _programName = "MissileControl";
-        private const string _programVersion = "1.01";
+        private const string _programVersion = "1.02";
         private static string _gridBlockTag;
 
         private SystemCoordinator _systemCoordinator;
@@ -58,7 +58,7 @@ namespace IngameScript
                 Config.Clear();
             }
 
-            _gridBlockTag = Config.Get("Config", "GridBlockTag").ToString("");
+            _gridBlockTag = Config.Get("Config", "GridBlockTag").ToString("NOT_SET");
             Config.Set("Config", "GridBlockTag", _gridBlockTag);
             GridTerminalSystem.GetBlocksOfType(_allGridBlocks, b => b.IsSameConstructAs(Me) && b.CustomName.ToUpper().Contains(_gridBlockTag.ToUpper()));
 
