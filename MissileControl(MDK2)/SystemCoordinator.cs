@@ -103,14 +103,14 @@ namespace IngameScript
 
             private void GetBlocks()
             {
-                ReferenceController = AllGridBlocks.Find(b => b is IMyShipController && b.CustomName.ToUpper().Contains("MISSILE CONTROLLER")) as IMyShipController;
+                ReferenceController = AllGridBlocks.Where(b => b is IMyShipController && b.CustomName.ToUpper().Contains("MISSILE CONTROLLER")).FirstOrDefault() as IMyShipController;
                 if (ReferenceController == null)
                 {
                     DebugWrite("Error: missile controller not found!\n", true);
                     throw new Exception("missile controller not found!\n");
                 }
 
-                _soundBlock = AllGridBlocks.Find(b => b is IMySoundBlock) as IMySoundBlock;
+                _soundBlock = AllGridBlocks.Where(b => b is IMySoundBlock).FirstOrDefault() as IMySoundBlock;
             }
 
             public void Run(double time)

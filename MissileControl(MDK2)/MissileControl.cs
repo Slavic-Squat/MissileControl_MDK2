@@ -97,7 +97,7 @@ namespace IngameScript
                     throw new Exception("No gyros found!\n");
                 }
 
-                _connector = AllGridBlocks.Find(b => b is IMyShipConnector) as IMyShipConnector;
+                _connector = AllGridBlocks.Where(b => b is IMyShipConnector).FirstOrDefault() as IMyShipConnector;
                 if (_connector == null)
                 {
                     DebugWrite("Error: no connector found!\n", true);
@@ -111,7 +111,7 @@ namespace IngameScript
                     throw new Exception("No warheads found!\n");
                 }
 
-                _antenna = AllGridBlocks.Find(b => b is IMyRadioAntenna) as IMyRadioAntenna;
+                _antenna = AllGridBlocks.Where(b => b is IMyRadioAntenna).FirstOrDefault() as IMyRadioAntenna;
                 if (_antenna == null)
                 {
                     DebugWrite("Error: no antenna found!\n", true);
@@ -132,7 +132,7 @@ namespace IngameScript
                     throw new Exception("No batteries found!\n");
                 }
 
-                _remoteCtrl = AllGridBlocks.Find(b => b is IMyRemoteControl) as IMyRemoteControl;
+                _remoteCtrl = AllGridBlocks.Where(b => b is IMyRemoteControl).FirstOrDefault() as IMyRemoteControl;
                 if (_remoteCtrl == null)
                 {
                     DebugWrite("Error: no remote control found!\n", true);
@@ -151,9 +151,9 @@ namespace IngameScript
 
                 _missileGuidance = new MissileGuidance(_maxAccel, _m, _n, maxSpeed: _maxSpeed);
 
-                Deactivate();
-
+                _antenna.Enabled = false;
                 _gyros.ForEach(g => g.GyroBlock.GyroOverride = true);
+                _gyros.ForEach(g => g.GyroBlock.Enabled = false);
                 _remoteCtrl.DampenersOverride = false;
                 _remoteCtrl.SetAutoPilotEnabled(false);
                 _remoteCtrl.ControlThrusters = true;
@@ -161,6 +161,18 @@ namespace IngameScript
                 _remoteCtrl.SetValue("ControlGyros", true);
                 _connector.IsParkingEnabled = false;
                 _connector.PullStrength = 1f;
+
+                _h2Tanks.ForEach(t => t.TankBlock.Stockpile = true);
+                _batteries.ForEach(b => b.BatteryBlock.ChargeMode = ChargeMode.Recharge);
+
+                foreach (var thrusterGroup in _thrusterGroups.Values)
+                {
+                    foreach (var thruster in thrusterGroup.Thrusters)
+                    {
+                        thruster.ThrusterBlock.Enabled = false;
+                    }
+                }
+                
             }
 
             public void Run(double time)
@@ -199,8 +211,6 @@ namespace IngameScript
                     switch (Stage)
                     {
                         case MissileStage.Launching:
-
-                            _connector.Disconnect();
                             Vector3 launchVector;
                             float launchAccel = _thrusterGroups[_launchDirection].MaxThrust / _missileMass;
                             switch (_launchDirection)
@@ -388,14 +398,6 @@ namespace IngameScript
                 Stage = MissileStage.Active;
 
                 _antenna.Enabled = true;
-                _h2Tanks.ForEach(t => t.TankBlock.Stockpile = false);
-                _batteries.ForEach(b => b.BatteryBlock.ChargeMode = ChargeMode.Discharge);
-
-                foreach (var thrusterGroup in _thrusterGroups.Values)
-                {
-                    thrusterGroup.Thrusters.ForEach(t => t.ThrusterBlock.Enabled = true);
-                }
-                _gyros.ForEach(g => g.GyroBlock.Enabled = true);
             }
 
             public void Deactivate()
@@ -407,14 +409,6 @@ namespace IngameScript
                 Stage = MissileStage.Idle;
 
                 _antenna.Enabled = false;
-                _h2Tanks.ForEach(t => t.TankBlock.Stockpile = true);
-                _batteries.ForEach(b => b.BatteryBlock.ChargeMode = ChargeMode.Recharge);
-                
-                foreach (var thrusterGroup in _thrusterGroups.Values)
-                {
-                    thrusterGroup.Thrusters.ForEach(t => t.ThrusterBlock.Enabled = false);
-                }
-                _gyros.ForEach(g => g.GyroBlock.Enabled = false);
             }
 
             public void Launch()
@@ -424,6 +418,21 @@ namespace IngameScript
                     return;
                 }
                 Stage = MissileStage.Launching;
+
+                _h2Tanks.ForEach(t => t.TankBlock.Stockpile = false);
+                _batteries.ForEach(b => b.BatteryBlock.ChargeMode = ChargeMode.Discharge);
+
+                foreach (var thrusterGroup in _thrusterGroups.Values)
+                {
+                    foreach (var thruster in thrusterGroup.Thrusters)
+                    {
+                        thruster.ThrusterBlock.Enabled = true;
+                    }
+                }
+                _gyros.ForEach(g => g.GyroBlock.Enabled = true);
+                _connector.Disconnect();
+                _connector.Enabled = false;
+
                 _launchTime = Time;
             }
 
