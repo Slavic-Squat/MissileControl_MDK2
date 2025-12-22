@@ -24,9 +24,6 @@ namespace IngameScript
     {
         public class MissileControl
         {
-            public double Time { get; private set; }
-            public MissileStage Stage { get; private set; } = MissileStage.Idle;
-
             private List<Gyro> _gyros = new List<Gyro>();
             private IMyShipConnector _connector;
             private List<IMyWarhead> _payload = new List<IMyWarhead>();
@@ -55,29 +52,67 @@ namespace IngameScript
             private MissileGuidanceType _guidanceType;
             private MissilePayload _payloadType;
             private Direction _launchDirection;
+            private double _launchPeriod = 3;
+            private Direction _dismountDirection;
+            private double _dismountPeriod = 0;
 
             private EntityInfo _target;
             private double _launchTime;
 
-            public MissileControl(float missileMass, float maxSpeed, MissileType type, MissileGuidanceType guidanceType, MissilePayload payload, float m, float n, float kp, float ki, float kd, Direction launchDirection)
+            public double Time { get; private set; }
+            public MissileStage Stage { get; private set; } = MissileStage.Idle;
+            public MissileType Type => _type;
+            public MissileGuidanceType GuidanceType => _guidanceType;
+            public MissilePayload PayloadType => _payloadType;
+
+            public MissileControl()
             {
-                _missileMass = missileMass;
-                _maxSpeed = maxSpeed;
-                _type = type;
-                _guidanceType = guidanceType;
-                _payloadType = payload;
-                _m = m;
-                _n = n;
-                _kp = kp;
-                _ki = ki;
-                _kd = kd;
-                _launchDirection = launchDirection;
                 GetBlocks();
                 Init();
             }
 
             private void GetBlocks()
             {
+                _type = MissileEnumHelper.GetMissileType(Config.Get("Config", "Type").ToString(MissileEnumHelper.GetDisplayString(MissileType.Unknown)));
+                Config.Set("Config", "Type", MissileEnumHelper.GetDisplayString(_type));
+
+                _guidanceType = MissileEnumHelper.GetMissileGuidanceType(Config.Get("Config", "GuidanceType").ToString(MissileEnumHelper.GetDisplayString(MissileGuidanceType.Unknown)));
+                Config.Set("Config", "GuidanceType", MissileEnumHelper.GetDisplayString(_guidanceType));
+
+                _payloadType = MissileEnumHelper.GetMissilePayload(Config.Get("Config", "Payload").ToString(MissileEnumHelper.GetDisplayString(MissilePayload.Unknown)));
+                Config.Set("Config", "Payload", MissileEnumHelper.GetDisplayString(_payloadType));
+
+                _missileMass = Config.Get("Config", "Mass").ToSingle(10000);
+                Config.Set("Config", "Mass", _missileMass);
+
+                _maxSpeed = Config.Get("Config", "MaxSpeed").ToSingle(100);
+                Config.Set("Config", "MaxSpeed", _maxSpeed);
+
+                _m = Config.Get("Config", "M").ToSingle(0.35f);
+                Config.Set("Config", "M", _m);
+
+                _n = Config.Get("Config", "N").ToSingle(5f);
+                Config.Set("Config", "N", _n);
+
+                _kp = Config.Get("Config", "Kp").ToSingle(2.5f);
+                Config.Set("Config", "Kp", _kp);
+
+                _ki = Config.Get("Config", "Ki").ToSingle(0f);
+                Config.Set("Config", "Ki", _ki);
+
+                _kd = Config.Get("Config", "Kd").ToSingle(0f);
+                Config.Set("Config", "Kd", _kd);
+
+                _launchDirection = MiscEnumHelper.GetDirection(Config.Get("Config", "LaunchDirection").ToString("FORWARD"));
+                Config.Set("Config", "LaunchDirection", MiscEnumHelper.GetDirectionStr(_launchDirection));
+                _launchPeriod = Config.Get("Config", "LaunchPeriod").ToDouble(3);
+                Config.Set("Config", "LaunchPeriod", _launchPeriod);
+
+                _dismountDirection = MiscEnumHelper.GetDirection(Config.Get("Config", "DismountDirection").ToString("UP"));
+                Config.Set("Config", "DismountDirection", MiscEnumHelper.GetDirectionStr(_dismountDirection));
+                _dismountPeriod = Config.Get("Config", "DismountPeriod").ToDouble(0);
+                Config.Set("Config", "DismountPeriod", _dismountPeriod);
+
                 _thrusterGroups[Direction.Up] = new ThrusterGroup(Direction.Up, AllGridBlocks.Where(b => b is IMyThrust && b.CustomData.ToUpper().Contains("-UP")).Select(b => new Thruster(b as IMyThrust, Direction.Up)).ToArray());
                 _thrusterGroups[Direction.Down] = new ThrusterGroup(Direction.Down, AllGridBlocks.Where(b => b is IMyThrust && b.CustomData.ToUpper().Contains("-DOWN")).Select(b => new Thruster(b as IMyThrust, Direction.Down)).ToArray());
                 _thrusterGroups[Direction.Left] = new ThrusterGroup(Direction.Left, AllGridBlocks.Where(b => b is IMyThrust && b.CustomData.ToUpper().Contains("-LEFT")).Select(b => new Thruster(b as IMyThrust, Direction.Left)).ToArray());
@@ -237,10 +272,42 @@ namespace IngameScript
                                     launchVector = SystemCoordinator.ReferenceWorldMatrix.Forward;
                                     break;
                             }
-                            vectorToAlign = forwardVector;
                             accelVector = launchVector * launchAccel;
 
-                            if (time - _launchTime > 3)
+                            if (time - _launchTime < _dismountPeriod)
+                            {
+                                Vector3 dismountVector;
+                                float dismountAccel = _thrusterGroups[_dismountDirection].MaxThrust / _missileMass;
+                                switch (_dismountDirection)
+                                {
+                                    case Direction.Up:
+                                        dismountVector = SystemCoordinator.ReferenceWorldMatrix.Up;
+                                        break;
+                                    case Direction.Down:
+                                        dismountVector = SystemCoordinator.ReferenceWorldMatrix.Down;
+                                        break;
+                                    case Direction.Left:
+                                        dismountVector = SystemCoordinator.ReferenceWorldMatrix.Left;
+                                        break;
+                                    case Direction.Right:
+                                        dismountVector = SystemCoordinator.ReferenceWorldMatrix.Right;
+                                        break;
+                                    case Direction.Forward:
+                                        dismountVector = SystemCoordinator.ReferenceWorldMatrix.Forward;
+                                        break;
+                                    case Direction.Backward:
+                                        dismountVector = SystemCoordinator.ReferenceWorldMatrix.Backward;
+                                        break;
+                                    default:
+                                        dismountVector = SystemCoordinator.ReferenceWorldMatrix.Up;
+                                        break;
+                                }
+                                accelVector += dismountVector * dismountAccel;
+                            }
+
+                            vectorToAlign = forwardVector;
+
+                            if (time - _launchTime > _launchPeriod)
                             {
                                 Stage = MissileStage.Flying;
                             }

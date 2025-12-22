@@ -35,9 +35,9 @@ namespace IngameScript
             public long LauncherAddress { get; private set; }
             public long LauncherID { get; private set; }
             public MissileStage Stage => MissileControl.Stage;
-            public MissileType Type { get; private set; }
-            public MissileGuidanceType GuidanceType { get; private set; }
-            public MissilePayload Payload { get; private set; }
+            public MissileType Type => MissileControl.Type;
+            public MissileGuidanceType GuidanceType => MissileControl.GuidanceType;
+            public MissilePayload Payload => MissileControl.PayloadType;
             public EntityInfo Self { get; private set; }
             public EntityInfo Target { get; private set; }
             public double Time { get; private set; }
@@ -55,40 +55,7 @@ namespace IngameScript
                 Config.Set("Config", "MissileID", SelfID);
                 Config.Set("Config", "MissileAddress", IGCS.Me);
 
-                Type = MissileEnumHelper.GetMissileType(Config.Get("Config", "Type").ToString(MissileEnumHelper.GetDisplayString(MissileType.Unknown)));
-                Config.Set("Config", "Type", MissileEnumHelper.GetDisplayString(Type));
-
-                GuidanceType = MissileEnumHelper.GetMissileGuidanceType(Config.Get("Config", "GuidanceType").ToString(MissileEnumHelper.GetDisplayString(MissileGuidanceType.Unknown)));
-                Config.Set("Config", "GuidanceType", MissileEnumHelper.GetDisplayString(GuidanceType));
-
-                Payload = MissileEnumHelper.GetMissilePayload(Config.Get("Config", "Payload").ToString(MissileEnumHelper.GetDisplayString(MissilePayload.Unknown)));
-                Config.Set("Config", "Payload", MissileEnumHelper.GetDisplayString(Payload));
-
-                float missileMass = Config.Get("Config", "Mass").ToSingle(10000);
-                Config.Set("Config", "Mass", missileMass);
-
-                float maxSpeed = Config.Get("Config", "MaxSpeed").ToSingle(100);
-                Config.Set("Config", "MaxSpeed", maxSpeed);
-
-                float m = Config.Get("Config", "M").ToSingle(0.35f);
-                Config.Set("Config", "M", m);
-
-                float n = Config.Get("Config", "N").ToSingle(5f);
-                Config.Set("Config", "N", n);
-
-                float kp = Config.Get("Config", "Kp").ToSingle(2.5f);
-                Config.Set("Config", "Kp", kp);
-
-                float ki = Config.Get("Config", "Ki").ToSingle(0f);
-                Config.Set("Config", "Ki", ki);
-
-                float kd = Config.Get("Config", "Kd").ToSingle(0f);
-                Config.Set("Config", "Kd", kd);
-
-                Direction launchDirection = MiscEnumHelper.GetDirection(Config.Get("Config", "LaunchDirection").ToString("FORWARD"));
-                Config.Set("Config", "LaunchDirection", MiscEnumHelper.GetDirectionStr(launchDirection));
-
-                MissileControl = new MissileControl(missileMass, maxSpeed, Type, GuidanceType, Payload, m, n, kp, ki, kd, launchDirection);
+                MissileControl = new MissileControl();
 
                 CommunicationHandler0.RegisterTag("TARGET_INFO", true);
                 CommunicationHandler0.RegisterTag("COMMANDS", true);
