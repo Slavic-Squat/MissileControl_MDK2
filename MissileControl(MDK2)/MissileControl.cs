@@ -32,7 +32,7 @@ namespace IngameScript
             private List<GasTank> _h2Tanks = new List<GasTank>();
             private List<Battery> _batteries = new List<Battery>();
             private IMyRemoteControl _remoteCtrl;
-            private IMySensorBlock _proxySensor;
+            private IMyCameraBlock _proxySensor;
 
             private MissileGuidance _missileGuidance;
             private PIDControl _pitchController;
@@ -56,7 +56,7 @@ namespace IngameScript
             private double _launchPeriod = 3;
             private Direction _dismountDirection;
             private double _dismountPeriod = 0;
-            private float _proxySensorrange = 5;
+            private float _proxySensorRange = 5;
 
             private EntityInfo _target;
             private double _launchTime;
@@ -75,49 +75,6 @@ namespace IngameScript
 
             private void GetBlocks()
             {
-                _type = MissileEnumHelper.GetMissileType(Config.Get("Config", "Type").ToString(MissileEnumHelper.GetDisplayString(MissileType.Unknown)));
-                Config.Set("Config", "Type", MissileEnumHelper.GetDisplayString(_type));
-
-                _guidanceType = MissileEnumHelper.GetMissileGuidanceType(Config.Get("Config", "GuidanceType").ToString(MissileEnumHelper.GetDisplayString(MissileGuidanceType.Unknown)));
-                Config.Set("Config", "GuidanceType", MissileEnumHelper.GetDisplayString(_guidanceType));
-
-                _payloadType = MissileEnumHelper.GetMissilePayload(Config.Get("Config", "Payload").ToString(MissileEnumHelper.GetDisplayString(MissilePayload.Unknown)));
-                Config.Set("Config", "Payload", MissileEnumHelper.GetDisplayString(_payloadType));
-
-                _missileMass = Config.Get("Config", "Mass").ToSingle(10000);
-                Config.Set("Config", "Mass", _missileMass);
-
-                _maxSpeed = Config.Get("Config", "MaxSpeed").ToSingle(100);
-                Config.Set("Config", "MaxSpeed", _maxSpeed);
-
-                _m = Config.Get("Config", "M").ToSingle(0.35f);
-                Config.Set("Config", "M", _m);
-
-                _n = Config.Get("Config", "N").ToSingle(5f);
-                Config.Set("Config", "N", _n);
-
-                _kp = Config.Get("Config", "Kp").ToSingle(2.5f);
-                Config.Set("Config", "Kp", _kp);
-
-                _ki = Config.Get("Config", "Ki").ToSingle(0f);
-                Config.Set("Config", "Ki", _ki);
-
-                _kd = Config.Get("Config", "Kd").ToSingle(0f);
-                Config.Set("Config", "Kd", _kd);
-
-                _launchDirection = MiscEnumHelper.GetDirection(Config.Get("Config", "LaunchDirection").ToString("FORWARD"));
-                Config.Set("Config", "LaunchDirection", MiscEnumHelper.GetDirectionStr(_launchDirection));
-                _launchPeriod = Config.Get("Config", "LaunchPeriod").ToDouble(3);
-                Config.Set("Config", "LaunchPeriod", _launchPeriod);
-
-                _dismountDirection = MiscEnumHelper.GetDirection(Config.Get("Config", "DismountDirection").ToString("UP"));
-                Config.Set("Config", "DismountDirection", MiscEnumHelper.GetDirectionStr(_dismountDirection));
-                _dismountPeriod = Config.Get("Config", "DismountPeriod").ToDouble(0);
-                Config.Set("Config", "DismountPeriod", _dismountPeriod);
-
-                _proxySensorrange = Config.Get("Config", "ProxySensorRange").ToSingle(5);
-                Config.Set("Config", "ProxySensorRange", _proxySensorrange);
-
                 _thrusterGroups[Direction.Up] = new ThrusterGroup(Direction.Up, AllGridBlocks.Where(b => b is IMyThrust && b.CustomData.ToUpper().Contains("-UP")).Select(b => new Thruster(b as IMyThrust, Direction.Up)).ToArray());
                 _thrusterGroups[Direction.Down] = new ThrusterGroup(Direction.Down, AllGridBlocks.Where(b => b is IMyThrust && b.CustomData.ToUpper().Contains("-DOWN")).Select(b => new Thruster(b as IMyThrust, Direction.Down)).ToArray());
                 _thrusterGroups[Direction.Left] = new ThrusterGroup(Direction.Left, AllGridBlocks.Where(b => b is IMyThrust && b.CustomData.ToUpper().Contains("-LEFT")).Select(b => new Thruster(b as IMyThrust, Direction.Left)).ToArray());
@@ -179,7 +136,7 @@ namespace IngameScript
                     throw new Exception("No remote control found!\n");
                 }
 
-                _proxySensor = AllGridBlocks.Where(b => b is IMySensorBlock).FirstOrDefault() as IMySensorBlock;
+                _proxySensor = AllGridBlocks.Where(b => b is IMyCameraBlock).FirstOrDefault() as IMyCameraBlock;
                 if (_proxySensor == null)
                 {
                     DebugWrite("Error: no proxy sensor found!\n", true);
@@ -189,6 +146,49 @@ namespace IngameScript
 
             private void Init()
             {
+                _type = MissileEnumHelper.GetMissileType(Config.Get("Config", "Type").ToString(MissileEnumHelper.GetDisplayString(MissileType.Unknown)));
+                Config.Set("Config", "Type", MissileEnumHelper.GetDisplayString(_type));
+
+                _guidanceType = MissileEnumHelper.GetMissileGuidanceType(Config.Get("Config", "GuidanceType").ToString(MissileEnumHelper.GetDisplayString(MissileGuidanceType.Unknown)));
+                Config.Set("Config", "GuidanceType", MissileEnumHelper.GetDisplayString(_guidanceType));
+
+                _payloadType = MissileEnumHelper.GetMissilePayload(Config.Get("Config", "Payload").ToString(MissileEnumHelper.GetDisplayString(MissilePayload.Unknown)));
+                Config.Set("Config", "Payload", MissileEnumHelper.GetDisplayString(_payloadType));
+
+                _missileMass = Config.Get("Config", "Mass").ToSingle(10000);
+                Config.Set("Config", "Mass", _missileMass);
+
+                _maxSpeed = Config.Get("Config", "MaxSpeed").ToSingle(100);
+                Config.Set("Config", "MaxSpeed", _maxSpeed);
+
+                _m = Config.Get("Config", "M").ToSingle(0.35f);
+                Config.Set("Config", "M", _m);
+
+                _n = Config.Get("Config", "N").ToSingle(5f);
+                Config.Set("Config", "N", _n);
+
+                _kp = Config.Get("Config", "Kp").ToSingle(2.5f);
+                Config.Set("Config", "Kp", _kp);
+
+                _ki = Config.Get("Config", "Ki").ToSingle(0f);
+                Config.Set("Config", "Ki", _ki);
+
+                _kd = Config.Get("Config", "Kd").ToSingle(0f);
+                Config.Set("Config", "Kd", _kd);
+
+                _launchDirection = MiscEnumHelper.GetDirection(Config.Get("Config", "LaunchDirection").ToString("FORWARD"));
+                Config.Set("Config", "LaunchDirection", MiscEnumHelper.GetDirectionStr(_launchDirection));
+                _launchPeriod = Config.Get("Config", "LaunchPeriod").ToDouble(3);
+                Config.Set("Config", "LaunchPeriod", _launchPeriod);
+
+                _dismountDirection = MiscEnumHelper.GetDirection(Config.Get("Config", "DismountDirection").ToString("UP"));
+                Config.Set("Config", "DismountDirection", MiscEnumHelper.GetDirectionStr(_dismountDirection));
+                _dismountPeriod = Config.Get("Config", "DismountPeriod").ToDouble(0);
+                Config.Set("Config", "DismountPeriod", _dismountPeriod);
+
+                _proxySensorRange = Config.Get("Config", "ProxySensorRange").ToSingle(5);
+                Config.Set("Config", "ProxySensorRange", _proxySensorRange);
+
                 _maxForwardAccel = _thrusterGroups[Direction.Forward].MaxThrust / _missileMass;
                 _maxRadialAccel = _thrusterGroups[Direction.Right].MaxThrust / _missileMass;
                 _maxAccel = (float)Math.Sqrt(_maxForwardAccel * _maxForwardAccel + _maxRadialAccel * _maxRadialAccel);
@@ -210,23 +210,7 @@ namespace IngameScript
                 _connector.IsParkingEnabled = false;
                 _connector.PullStrength = 1f;
                 _proxySensor.Enabled = false;
-                _proxySensor.DetectSmallShips = true;
-                _proxySensor.DetectLargeShips = true;
-                _proxySensor.DetectStations = true;
-                _proxySensor.DetectAsteroids = false;
-                _proxySensor.DetectFloatingObjects = false;
-                _proxySensor.DetectSubgrids = true;
-                _proxySensor.DetectPlayers = false;
-                _proxySensor.DetectOwner = false;
-                _proxySensor.DetectFriendly = true;
-                _proxySensor.DetectNeutral = true;
-                _proxySensor.DetectEnemy = true;
-                _proxySensor.FrontExtend = _proxySensorrange;
-                _proxySensor.BackExtend = _proxySensorrange;
-                _proxySensor.RightExtend = _proxySensorrange;
-                _proxySensor.LeftExtend = _proxySensorrange;
-                _proxySensor.TopExtend = _proxySensorrange;
-                _proxySensor.BottomExtend = _proxySensorrange;
+                _proxySensor.EnableRaycast = true;
 
                 _h2Tanks.ForEach(t => t.TankBlock.Stockpile = true);
                 _batteries.ForEach(b => b.BatteryBlock.ChargeMode = ChargeMode.Recharge);
@@ -365,6 +349,14 @@ namespace IngameScript
                             accelVector = _missileGuidance.CalculateTotalAccel(estimatedTargetPos, _target.Velocity, missilePos, missileVel);
                             vectorToAlign = relTargetDir;
                             ClampAndAlign(vectorToAlign, ref accelVector, out vectorToAlign);
+
+                            Vector3 targetDirCamera = Vector3.TransformNormal(estimatedTargetPos - _proxySensor.GetPosition(), Matrix.Transpose(_proxySensor.WorldMatrix)).Normalized();
+                            MyDetectedEntityInfo detection = _proxySensor.Raycast(_proxySensorRange, targetDirCamera);
+
+                            if (!detection.IsEmpty() && detection.EntityId == _target.EntityID)
+                            {
+                                _payload.ForEach(w => w.Detonate());
+                            }
                             break;
 
                         default:
