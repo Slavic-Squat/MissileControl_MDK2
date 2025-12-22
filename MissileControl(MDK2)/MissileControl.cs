@@ -201,6 +201,7 @@ namespace IngameScript
                 _antenna.Enabled = false;
                 _gyros.ForEach(g => g.GyroBlock.GyroOverride = true);
                 _gyros.ForEach(g => g.GyroBlock.Enabled = false);
+                _payload.ForEach(w => w.IsArmed = false);
                 _remoteCtrl.DampenersOverride = false;
                 _remoteCtrl.SetAutoPilotEnabled(false);
                 _remoteCtrl.ControlThrusters = true;
@@ -364,13 +365,6 @@ namespace IngameScript
                             accelVector = _missileGuidance.CalculateTotalAccel(estimatedTargetPos, _target.Velocity, missilePos, missileVel);
                             vectorToAlign = relTargetDir;
                             ClampAndAlign(vectorToAlign, ref accelVector, out vectorToAlign);
-
-                            var temp = new List<MyDetectedEntityInfo>();
-                            _proxySensor.DetectedEntities(temp);
-                            if (temp.Any())
-                            {
-                                _payload.ForEach(w => w.Detonate());
-                            }
                             break;
 
                         default:
