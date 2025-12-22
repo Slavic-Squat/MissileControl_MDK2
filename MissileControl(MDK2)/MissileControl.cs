@@ -32,6 +32,7 @@ namespace IngameScript
             private List<GasTank> _h2Tanks = new List<GasTank>();
             private List<Battery> _batteries = new List<Battery>();
             private IMyRemoteControl _remoteCtrl;
+            private IMySensorBlock _proxySensor;
 
             private MissileGuidance _missileGuidance;
             private PIDControl _pitchController;
@@ -55,6 +56,7 @@ namespace IngameScript
             private double _launchPeriod = 3;
             private Direction _dismountDirection;
             private double _dismountPeriod = 0;
+            private float _proxySensorrange = 5;
 
             private EntityInfo _target;
             private double _launchTime;
@@ -112,6 +114,9 @@ namespace IngameScript
                 Config.Set("Config", "DismountDirection", MiscEnumHelper.GetDirectionStr(_dismountDirection));
                 _dismountPeriod = Config.Get("Config", "DismountPeriod").ToDouble(0);
                 Config.Set("Config", "DismountPeriod", _dismountPeriod);
+
+                _proxySensorrange = Config.Get("Config", "ProxySensorRange").ToSingle(5);
+                Config.Set("Config", "ProxySensorRange", _proxySensorrange);
 
                 _thrusterGroups[Direction.Up] = new ThrusterGroup(Direction.Up, AllGridBlocks.Where(b => b is IMyThrust && b.CustomData.ToUpper().Contains("-UP")).Select(b => new Thruster(b as IMyThrust, Direction.Up)).ToArray());
                 _thrusterGroups[Direction.Down] = new ThrusterGroup(Direction.Down, AllGridBlocks.Where(b => b is IMyThrust && b.CustomData.ToUpper().Contains("-DOWN")).Select(b => new Thruster(b as IMyThrust, Direction.Down)).ToArray());
@@ -173,6 +178,13 @@ namespace IngameScript
                     DebugWrite("Error: no remote control found!\n", true);
                     throw new Exception("No remote control found!\n");
                 }
+
+                _proxySensor = AllGridBlocks.Where(b => b is IMySensorBlock).FirstOrDefault() as IMySensorBlock;
+                if (_proxySensor == null)
+                {
+                    DebugWrite("Error: no proxy sensor found!\n", true);
+                    throw new Exception("No proxy sensor found!\n");
+                }
             }
 
             private void Init()
@@ -196,6 +208,24 @@ namespace IngameScript
                 _remoteCtrl.SetValue("ControlGyros", true);
                 _connector.IsParkingEnabled = false;
                 _connector.PullStrength = 1f;
+                _proxySensor.Enabled = false;
+                _proxySensor.DetectSmallShips = true;
+                _proxySensor.DetectLargeShips = true;
+                _proxySensor.DetectStations = true;
+                _proxySensor.DetectAsteroids = false;
+                _proxySensor.DetectFloatingObjects = false;
+                _proxySensor.DetectSubgrids = true;
+                _proxySensor.DetectPlayers = false;
+                _proxySensor.DetectOwner = false;
+                _proxySensor.DetectFriendly = true;
+                _proxySensor.DetectNeutral = true;
+                _proxySensor.DetectEnemy = true;
+                _proxySensor.FrontExtend = _proxySensorrange;
+                _proxySensor.BackExtend = _proxySensorrange;
+                _proxySensor.RightExtend = _proxySensorrange;
+                _proxySensor.LeftExtend = _proxySensorrange;
+                _proxySensor.TopExtend = _proxySensorrange;
+                _proxySensor.BottomExtend = _proxySensorrange;
 
                 _h2Tanks.ForEach(t => t.TankBlock.Stockpile = true);
                 _batteries.ForEach(b => b.BatteryBlock.ChargeMode = ChargeMode.Recharge);
@@ -323,6 +353,8 @@ namespace IngameScript
                             if (timeToTarget > 0 && timeToTarget < 10)
                             {
                                 Stage = MissileStage.Interception;
+                                _payload.ForEach(w => w.IsArmed = true);
+                                _proxySensor.Enabled = true;
                             }
 
                             break;
@@ -333,8 +365,9 @@ namespace IngameScript
                             vectorToAlign = relTargetDir;
                             ClampAndAlign(vectorToAlign, ref accelVector, out vectorToAlign);
 
-                            _payload.ForEach(w => w.IsArmed = true);
-                            if (dist <= 1)
+                            var temp = new List<MyDetectedEntityInfo>();
+                            _proxySensor.DetectedEntities(temp);
+                            if (temp.Any())
                             {
                                 _payload.ForEach(w => w.Detonate());
                             }
