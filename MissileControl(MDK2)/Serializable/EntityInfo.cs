@@ -124,6 +124,21 @@ namespace IngameScript
                 return this;
             }
 
+            public EntityInfo MergeKinematics(EntityInfo entityInfo)
+            {
+                if (EntityID != entityInfo.EntityID)
+                {
+                    return this;
+                }
+                if (TimeRecorded < entityInfo.TimeRecorded)
+                {
+                    Position = entityInfo.Position;
+                    Velocity = entityInfo.Velocity;
+                    TimeRecorded = entityInfo.TimeRecorded;
+                }
+                return this;
+            }
+
             public byte[] Serialize()
             {
                 List<byte> bytes = new List<byte>();
