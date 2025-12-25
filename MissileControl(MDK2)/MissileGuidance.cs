@@ -24,12 +24,12 @@ namespace IngameScript
     {
         public class MissileGuidance
         {
-            public double MaxAccel { get; set; }
-            public double M { get; set; }
-            public double N { get; set; }
-            public double MaxSpeed { get; set; }
+            public float MaxAccel { get; set; }
+            public float M { get; set; }
+            public float N { get; set; }
+            public float MaxSpeed { get; set; }
 
-            public MissileGuidance(double maxAccel, double m, double n, double maxSpeed = 100)
+            public MissileGuidance(float maxAccel, float m, float n, float maxSpeed = 100)
             {
                 MaxAccel = maxAccel;
                 M = m;

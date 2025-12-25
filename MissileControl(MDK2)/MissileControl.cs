@@ -38,16 +38,16 @@ namespace IngameScript
             private PIDControl _pitchController;
             private PIDControl _yawController;
 
-            private double _missileMass;
-            private double _maxSpeed;
-            private double _m;
-            private double _n;
+            private float _missileMass;
+            private float _maxSpeed;
+            private float _m;
+            private float _n;
             private float _kp;
             private float _ki;
             private float _kd;
-            private double _maxForwardAccel;
-            private double _maxRadialAccel;
-            private double _maxAccel;
+            private float _maxForwardAccel;
+            private float _maxRadialAccel;
+            private float _maxAccel;
 
             private MissileType _type;
             private MissileGuidanceType _guidanceType;
@@ -56,7 +56,7 @@ namespace IngameScript
             private double _launchPeriod = 3;
             private Direction _dismountDirection;
             private double _dismountPeriod = 0;
-            private double _proxySensorRange = 5;
+            private float _proxySensorRange = 5;
 
             private EntityInfo _target;
             private double _launchTime;
@@ -361,7 +361,7 @@ namespace IngameScript
 
                         default:
                             vectorToAlign = forwardVector;
-                            accelVector = Vector3.Zero;
+                            accelVector = Vector3D.Zero;
                             break;
                     }
                     Vector3D forwardVectorLocal = Vector3D.TransformNormal(forwardVector, MatrixD.Transpose(SystemCoordinator.ReferenceWorldMatrix));
