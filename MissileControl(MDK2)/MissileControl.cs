@@ -38,16 +38,16 @@ namespace IngameScript
             private PIDControl _pitchController;
             private PIDControl _yawController;
 
-            private float _missileMass;
-            private float _maxSpeed;
-            private float _m;
-            private float _n;
+            private double _missileMass;
+            private double _maxSpeed;
+            private double _m;
+            private double _n;
             private float _kp;
             private float _ki;
             private float _kd;
-            private float _maxForwardAccel;
-            private float _maxRadialAccel;
-            private float _maxAccel;
+            private double _maxForwardAccel;
+            private double _maxRadialAccel;
+            private double _maxAccel;
 
             private MissileType _type;
             private MissileGuidanceType _guidanceType;
@@ -56,7 +56,7 @@ namespace IngameScript
             private double _launchPeriod = 3;
             private Direction _dismountDirection;
             private double _dismountPeriod = 0;
-            private float _proxySensorRange = 5;
+            private double _proxySensorRange = 5;
 
             private EntityInfo _target;
             private double _launchTime;
@@ -238,31 +238,31 @@ namespace IngameScript
                 {
                     double timeDelta = time - Time;
 
-                    Vector3 missilePos = SystemCoordinator.ReferencePosition;
-                    Vector3 missileVel = SystemCoordinator.ReferenceVelocity;
+                    Vector3D missilePos = SystemCoordinator.ReferencePosition;
+                    Vector3D missileVel = SystemCoordinator.ReferenceVelocity;
 
-                    Vector3 estimatedTargetPos = _target.Position;
+                    Vector3D estimatedTargetPos = _target.Position;
                     if (_target.TimeRecorded < globalTime)
                     {
                         double secSinceLastUpdate = globalTime - _target.TimeRecorded;
-                        estimatedTargetPos = _target.Position + _target.Velocity * (float)secSinceLastUpdate;
+                        estimatedTargetPos = _target.Position + _target.Velocity * secSinceLastUpdate;
                     }
-                    Vector3 range = estimatedTargetPos - missilePos;
-                    float dist = range.Length();
-                    Vector3 relTargetDir = dist == 0 ? Vector3.Zero : range / dist;
-                    Vector3 relVel = _target.Velocity - missileVel;
-                    float closingSpeed = -Vector3.Dot(relTargetDir, relVel);
-                    float timeToTarget = dist / closingSpeed;
+                    Vector3D range = estimatedTargetPos - missilePos;
+                    double dist = range.Length();
+                    Vector3D relTargetDir = dist == 0 ? Vector3D.Zero : range / dist;
+                    Vector3D relVel = _target.Velocity - missileVel;
+                    double closingSpeed = -Vector3D.Dot(relTargetDir, relVel);
+                    double timeToTarget = dist / closingSpeed;
 
-                    Vector3 forwardVector = SystemCoordinator.ReferenceWorldMatrix.Forward;
+                    Vector3D forwardVector = SystemCoordinator.ReferenceWorldMatrix.Forward;
                     
-                    Vector3 vectorToAlign;
-                    Vector3 accelVector;
+                    Vector3D vectorToAlign;
+                    Vector3D accelVector;
                     switch (Stage)
                     {
                         case MissileStage.Launching:
-                            Vector3 launchVector;
-                            float launchAccel = _thrusterGroups[_launchDirection].MaxThrust / _missileMass;
+                            Vector3D launchVector;
+                            double launchAccel = _thrusterGroups[_launchDirection].MaxThrust / _missileMass;
                             switch (_launchDirection)
                             {
                                 case Direction.Up:
@@ -291,8 +291,8 @@ namespace IngameScript
 
                             if (time - _launchTime < _dismountPeriod)
                             {
-                                Vector3 dismountVector;
-                                float dismountAccel = _thrusterGroups[_dismountDirection].MaxThrust / _missileMass;
+                                Vector3D dismountVector;
+                                double dismountAccel = _thrusterGroups[_dismountDirection].MaxThrust / _missileMass;
                                 switch (_dismountDirection)
                                 {
                                     case Direction.Up:
@@ -350,7 +350,7 @@ namespace IngameScript
                             vectorToAlign = relTargetDir;
                             ClampAndAlign(vectorToAlign, ref accelVector, out vectorToAlign);
 
-                            Vector3 targetDirCamera = Vector3.TransformNormal(estimatedTargetPos - _proxySensor.GetPosition(), Matrix.Transpose(_proxySensor.WorldMatrix)).Normalized();
+                            Vector3D targetDirCamera = Vector3D.TransformNormal(estimatedTargetPos - _proxySensor.GetPosition(), MatrixD.Transpose(_proxySensor.WorldMatrix)).Normalized();
                             MyDetectedEntityInfo detection = _proxySensor.Raycast(_proxySensorRange, targetDirCamera);
 
                             if (!detection.IsEmpty() && detection.EntityId == _target.EntityID)
@@ -364,31 +364,31 @@ namespace IngameScript
                             accelVector = Vector3.Zero;
                             break;
                     }
-                    Vector3 forwardVectorLocal = Vector3.TransformNormal(forwardVector, Matrix.Transpose(SystemCoordinator.ReferenceWorldMatrix));
-                    Vector3 vectorToAlignLocal = Vector3.TransformNormal(vectorToAlign, Matrix.Transpose(SystemCoordinator.ReferenceWorldMatrix));
-                    float dot = Vector3.Dot(forwardVectorLocal, vectorToAlignLocal);
-                    float epsilon = 1e-6f;
-                    Vector3 rotationVector;
+                    Vector3D forwardVectorLocal = Vector3D.TransformNormal(forwardVector, MatrixD.Transpose(SystemCoordinator.ReferenceWorldMatrix));
+                    Vector3D vectorToAlignLocal = Vector3D.TransformNormal(vectorToAlign, MatrixD.Transpose(SystemCoordinator.ReferenceWorldMatrix));
+                    double dot = Vector3D.Dot(forwardVectorLocal, vectorToAlignLocal);
+                    double epsilon = 1e-6;
+                    Vector3D rotationVector;
                     if (dot <= -1 + epsilon)
                     {
-                        rotationVector = Vector3.CalculatePerpendicularVector(forwardVectorLocal);
+                        rotationVector = Vector3D.CalculatePerpendicularVector(forwardVectorLocal);
                     }
                     else if (dot >= 1 - epsilon)
                     {
-                        rotationVector = Vector3.Zero;
+                        rotationVector = Vector3D.Zero;
                     }
                     else
                     {
-                        rotationVector = Vector3.Cross(forwardVectorLocal, vectorToAlignLocal);
+                        rotationVector = Vector3D.Cross(forwardVectorLocal, vectorToAlignLocal);
                     }
-                    float rotationAngle = (float)Math.Acos(MathHelper.Clamp(dot, -1f, 1f));
-                    Quaternion quaternion = Quaternion.CreateFromAxisAngle(rotationVector, rotationAngle);
-                    Matrix alignedMatrixLocal = Matrix.CreateFromQuaternion(quaternion);
+                    double rotationAngle = Math.Acos(MathHelper.Clamp(dot, -1, 1));
+                    Quaternion quaternion = Quaternion.CreateFromAxisAngle(rotationVector, (float)rotationAngle);
+                    MatrixD alignedMatrixLocal = MatrixD.CreateFromQuaternion(quaternion);
 
-                    float yawError = (float)Math.Atan2(-alignedMatrixLocal.M13, alignedMatrixLocal.M11);
-                    float pitchError = (float)Math.Atan2(-alignedMatrixLocal.M32, alignedMatrixLocal.M22);
-                    float yawCorrection = _yawController.Run(yawError, (float)timeDelta);
-                    float pitchCorrection = _pitchController.Run(pitchError, (float)timeDelta);
+                    double yawError = Math.Atan2(-alignedMatrixLocal.M13, alignedMatrixLocal.M11);
+                    double pitchError = Math.Atan2(-alignedMatrixLocal.M32, alignedMatrixLocal.M22);
+                    float yawCorrection = _yawController.Run((float)yawError, (float)timeDelta);
+                    float pitchCorrection = _pitchController.Run((float)pitchError, (float)timeDelta);
 
                     foreach (Gyro gyro in _gyros)
                     {
@@ -397,15 +397,15 @@ namespace IngameScript
                     }
 
 
-                    float alignment = Vector3.Dot(vectorToAlign, forwardVector);
-                    Vector3 desiredThrustVector = accelVector * _missileMass;
+                    double alignment = Vector3D.Dot(vectorToAlign, forwardVector);
+                    Vector3D desiredThrustVector = accelVector * _missileMass;
                     foreach (var thrusterGroup in _thrusterGroups.Values)
                     {
                         if (alignment > 0.9f)
                         {
-                            float value = Vector3.Dot(desiredThrustVector, thrusterGroup.Vector);
+                            double value = Vector3D.Dot(desiredThrustVector, thrusterGroup.Vector);
                             if (value < 0) value = 0;
-                            thrusterGroup.ThrustOverride = value;
+                            thrusterGroup.ThrustOverride = (float)value;
                         }
                         else
                         {
@@ -416,17 +416,17 @@ namespace IngameScript
                 Time = time;
             }
 
-            private void ClampAndAlign(Vector3 currentVectorToAlign, ref Vector3 accelVector, out Vector3 newVectorToAlign)
+            private void ClampAndAlign(Vector3D currentVectorToAlign, ref Vector3D accelVector, out Vector3D newVectorToAlign)
             {
-                float accelMag = accelVector.Length();
+                double accelMag = accelVector.Length();
                 if (accelMag > _maxAccel)
                 {
                     accelVector = accelVector / accelMag * _maxAccel;
                     accelMag = _maxAccel;
                 }                
 
-                float minForwardAccel;
-                float maxForwardAccel;
+                double minForwardAccel;
+                double maxForwardAccel;
 
                 if (accelMag <= _maxRadialAccel)
                 {
@@ -435,11 +435,11 @@ namespace IngameScript
                 }
                 else
                 {
-                    minForwardAccel = (float)Math.Sqrt(accelMag * accelMag - _maxRadialAccel * _maxRadialAccel);
+                    minForwardAccel = Math.Sqrt(accelMag * accelMag - _maxRadialAccel * _maxRadialAccel);
                     maxForwardAccel = _maxForwardAccel;
                 }
 
-                float currentForwardAccel = Vector3.Dot(accelVector, currentVectorToAlign);
+                double currentForwardAccel = Vector3D.Dot(accelVector, currentVectorToAlign);
 
                 if (currentForwardAccel >= minForwardAccel && currentForwardAccel <= maxForwardAccel)
                 {
@@ -447,32 +447,32 @@ namespace IngameScript
                     return;
                 }
 
-                Vector3 accelDir = accelMag == 0 ? Vector3.Zero : accelVector / accelMag;
-                float dot = Vector3.Dot(accelDir, currentVectorToAlign);
-                Vector3 rotationVector;
-                float epsilon = 1e-6f;
-                
+                Vector3D accelDir = accelMag == 0 ? Vector3D.Zero : accelVector / accelMag;
+                double dot = Vector3D.Dot(accelDir, currentVectorToAlign);
+                Vector3D rotationVector;
+                double epsilon = 1e-6;
+
                 if (dot <= -1 + epsilon)
                 {
-                    rotationVector = Vector3.CalculatePerpendicularVector(currentVectorToAlign);
+                    rotationVector = Vector3D.CalculatePerpendicularVector(currentVectorToAlign);
                 }
                 else if (dot >= 1 - epsilon)
                 {
-                    rotationVector = Vector3.Zero;
+                    rotationVector = Vector3D.Zero;
                 }
                 else
                 {
-                    rotationVector = Vector3.Cross(currentVectorToAlign, accelDir);
+                    rotationVector = Vector3D.Cross(currentVectorToAlign, accelDir);
                 }
 
-                float targetForwardAccel = currentForwardAccel < minForwardAccel ? minForwardAccel : maxForwardAccel;
+                double targetForwardAccel = currentForwardAccel < minForwardAccel ? minForwardAccel : maxForwardAccel;
 
-                float currentAccelAngle = accelMag == 0 ? 0 : (float)Math.Acos(MathHelper.Clamp(currentForwardAccel / accelMag, -1, 1));
-                float targetAccelAngle = accelMag == 0 ? 0 : (float)Math.Acos(MathHelper.Clamp(targetForwardAccel / accelMag, -1, 1));
-                float rotationAngle = -1f * (targetAccelAngle - currentAccelAngle);
+                double currentAccelAngle = accelMag == 0 ? 0 : Math.Acos(MathHelper.Clamp(currentForwardAccel / accelMag, -1, 1));
+                double targetAccelAngle = accelMag == 0 ? 0 : Math.Acos(MathHelper.Clamp(targetForwardAccel / accelMag, -1, 1));
+                double rotationAngle = -1 * (targetAccelAngle - currentAccelAngle);
 
-                Quaternion quaternion = Quaternion.CreateFromAxisAngle(rotationVector, rotationAngle);
-                newVectorToAlign = Vector3.Transform(currentVectorToAlign, quaternion);
+                Quaternion quaternion = Quaternion.CreateFromAxisAngle(rotationVector, (float)rotationAngle);
+                newVectorToAlign = Vector3D.Transform(currentVectorToAlign, quaternion);
             }
 
             public void Activate()

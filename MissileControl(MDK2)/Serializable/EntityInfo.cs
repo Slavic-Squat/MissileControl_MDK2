@@ -27,14 +27,14 @@ namespace IngameScript
             public long EntityID { get; private set; }
             public EntityType Type { get; private set; }
             public EntityInfoSubType SubType { get; private set; }
-            public Vector3 Position { get; private set;  }
-            public Vector3 Velocity { get; private set; }
+            public Vector3D Position { get; private set;  }
+            public Vector3D Velocity { get; private set; }
             public double TimeRecorded { get; private set; }
             public MissileInfoLite? MissileInfoLite { get; private set; }
             public MissileInfo? MissileInfo { get; private set; }
             public bool IsValid { get; private set; }
 
-            public EntityInfo(long entityID, Vector3 position, Vector3 velocity, double timeRecorded)
+            public EntityInfo(long entityID, Vector3D position, Vector3D velocity, double timeRecorded)
             {
                 EntityID = entityID;
                 Type = EntityType.Target;
@@ -60,7 +60,7 @@ namespace IngameScript
                 IsValid = true;
             }
 
-            public EntityInfo(long entityID, Vector3 position, Vector3 velocity, double timeRecorded, MissileInfoLite missileInfoLite)
+            public EntityInfo(long entityID, Vector3D position, Vector3D velocity, double timeRecorded, MissileInfoLite missileInfoLite)
             {
                 EntityID = entityID;
                 Type = EntityType.Missile;
@@ -73,7 +73,7 @@ namespace IngameScript
                 IsValid = true;
             }
 
-            public EntityInfo(long entityID, Vector3 position, Vector3 velocity, double timeRecorded, MissileInfo missileInfo)
+            public EntityInfo(long entityID, Vector3D position, Vector3D velocity, double timeRecorded, MissileInfo missileInfo)
             {
                 EntityID = entityID;
                 Type = EntityType.Missile;
@@ -187,27 +187,27 @@ namespace IngameScript
                 long entityID = BitConverter.ToInt64(bytes, index);
                 index += 8;
 
-                float xPos = BitConverter.ToSingle(bytes, index);
-                index += 4;
+                double xPos = BitConverter.ToDouble(bytes, index);
+                index += 8;
 
-                float yPos = BitConverter.ToSingle(bytes, index);
-                index += 4;
+                double yPos = BitConverter.ToDouble(bytes, index);
+                index += 8;
 
-                float zPos = BitConverter.ToSingle(bytes, index);
-                index += 4;
+                double zPos = BitConverter.ToDouble(bytes, index);
+                index += 8;
 
-                Vector3 pos = new Vector3(xPos, yPos, zPos);
+                Vector3D pos = new Vector3D(xPos, yPos, zPos);
 
-                float xVel = BitConverter.ToSingle(bytes, index);
-                index += 4;
+                double xVel = BitConverter.ToDouble(bytes, index);
+                index += 8;
 
-                float yVel = BitConverter.ToSingle(bytes, index);
-                index += 4;
+                double yVel = BitConverter.ToDouble(bytes, index);
+                index += 8;
 
-                float zVel = BitConverter.ToSingle(bytes, index);
-                index += 4;
+                double zVel = BitConverter.ToDouble(bytes, index);
+                index += 8;
 
-                Vector3 vel = new Vector3(xVel, yVel, zVel);
+                Vector3D vel = new Vector3D(xVel, yVel, zVel);
 
                 double timeRecorded = BitConverter.ToDouble(bytes, index);
                 index += 8;

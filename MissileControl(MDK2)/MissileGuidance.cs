@@ -24,12 +24,12 @@ namespace IngameScript
     {
         public class MissileGuidance
         {
-            public float MaxAccel { get; set; }
-            public float M { get; set; }
-            public float N { get; set; }
-            public float MaxSpeed { get; set; }
+            public double MaxAccel { get; set; }
+            public double M { get; set; }
+            public double N { get; set; }
+            public double MaxSpeed { get; set; }
 
-            public MissileGuidance(float maxAccel, float m, float n, float maxSpeed = 100)
+            public MissileGuidance(double maxAccel, double m, double n, double maxSpeed = 100)
             {
                 MaxAccel = maxAccel;
                 M = m;
@@ -37,28 +37,28 @@ namespace IngameScript
                 MaxSpeed = maxSpeed;
             }
 
-            public Vector3 CalculateTotalAccel(Vector3 targetPos, Vector3 targetVel, Vector3 missilePos, Vector3 missileVel)
+            public Vector3D CalculateTotalAccel(Vector3D targetPos, Vector3D targetVel, Vector3D missilePos, Vector3D missileVel)
             {
-                float missileSpeed = missileVel.Length();
-                Vector3 missileVelDir = missileSpeed == 0 ? Vector3.Zero : missileVel / missileSpeed;
-                Vector3 range = targetPos - missilePos;
-                float dist = range.Length();
-                Vector3 dirToTarget = dist == 0 ? Vector3.Zero : range / dist;
+                double missileSpeed = missileVel.Length();
+                Vector3D missileVelDir = missileSpeed == 0 ? Vector3D.Zero : missileVel / missileSpeed;
+                Vector3D range = targetPos - missilePos;
+                double dist = range.Length();
+                Vector3D dirToTarget = dist == 0 ? Vector3D.Zero : range / dist;
 
-                Vector3 relVel = targetVel - missileVel;
-                Vector3 rotationVector = dist == 0 ? Vector3.Zero : Vector3.Cross(range, relVel) / (dist * dist);
+                Vector3D relVel = targetVel - missileVel;
+                Vector3D rotationVector = dist == 0 ? Vector3D.Zero : Vector3D.Cross(range, relVel) / (dist * dist);
 
-                float desiredRelAccelMag = MaxAccel;
-                Vector3 desiredRelAccel = dirToTarget * desiredRelAccelMag;
+                double desiredRelAccelMag = MaxAccel;
+                Vector3D desiredRelAccel = dirToTarget * desiredRelAccelMag;
 
-                float alignment = Vector3.Dot(missileVelDir, dirToTarget);
-                if (missileSpeed > 0.98f * MaxSpeed && alignment > 0.75f)
+                double alignment = Vector3D.Dot(missileVelDir, dirToTarget);
+                if (missileSpeed > 0.98 * MaxSpeed && alignment > 0.75)
                 {
-                    desiredRelAccel = Vector3.Zero;
+                    desiredRelAccel = Vector3D.Zero;
                 }
 
-                Vector3 proNavAccel = M * desiredRelAccel - N * Vector3.Cross(rotationVector, relVel) + Vector3.Cross(rotationVector, Vector3.Cross(rotationVector, range));
-                float proNavAccelMag = proNavAccel.Length();
+                Vector3D proNavAccel = M * desiredRelAccel - N * Vector3D.Cross(rotationVector, relVel) + Vector3D.Cross(rotationVector, Vector3D.Cross(rotationVector, range));
+                double proNavAccelMag = proNavAccel.Length();
 
                 if (proNavAccelMag > MaxAccel)
                 {
