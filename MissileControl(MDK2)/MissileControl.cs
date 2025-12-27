@@ -82,7 +82,7 @@ namespace IngameScript
                 _thrusterGroups[Direction.Forward] = new ThrusterGroup(Direction.Forward, AllGridBlocks.Where(b => b is IMyThrust && b.CustomData.ToUpper().Contains("-FORWARD")).Select(b => new Thruster(b as IMyThrust, Direction.Forward)).ToArray());
                 _thrusterGroups[Direction.Backward] = new ThrusterGroup(Direction.Backward, AllGridBlocks.Where(b => b is IMyThrust && b.CustomData.ToUpper().Contains("-BACKWARD")).Select(b => new Thruster(b as IMyThrust, Direction.Backward)).ToArray());
 
-                if (_thrusterGroups.Count == 0)
+                if (_thrusterGroups.Count(tg => tg.Value.Thrusters.Count > 0) == 0)
                 {
                     DebugWrite("Error: no thrusters found!\n", true);
                     throw new Exception("No thrusters found!\n");
