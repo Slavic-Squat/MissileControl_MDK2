@@ -208,7 +208,7 @@ namespace IngameScript
                 _remoteCtrl.ControlWheels = false;
                 _remoteCtrl.SetValue("ControlGyros", true);
                 _connector.IsParkingEnabled = false;
-                _connector.PullStrength = 1f;
+                _connector.PullStrength = 0.00015f;
                 _proxySensor.Enabled = false;
                 _proxySensor.EnableRaycast = true;
 
