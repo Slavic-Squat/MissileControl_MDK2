@@ -21,7 +21,4 @@
     </PackageReference>
     <PackageReference Include="Mal.Mdk2.References" Version="2.2.4" />
   </ItemGroup>
-  <ItemGroup>
-    <AdditionalFiles Include="thumb.png" />
-  </ItemGroup>
 </Project>
