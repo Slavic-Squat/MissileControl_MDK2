@@ -31,12 +31,20 @@ namespace IngameScript
             public float ThrustOverride
             {
                 get { return ThrusterBlock.ThrustOverride; }
-                set { ThrusterBlock.ThrustOverride = value; }
+                set 
+                {
+                    if (value < 0 || float.IsNaN(value)) value = 0;
+                    ThrusterBlock.ThrustOverride = value; 
+                }
             }
             public float ThrustOverridePercentage
             {
                 get { return ThrusterBlock.ThrustOverridePercentage; }
-                set { ThrusterBlock.ThrustOverridePercentage = value; }
+                set 
+                {
+                    if (value < 0 || float.IsNaN(value)) value = 0;
+                    ThrusterBlock.ThrustOverridePercentage = value;
+                }
             }
 
             public Thruster(IMyThrust thruster, Direction direction)

@@ -28,17 +28,29 @@ namespace IngameScript
             public float Pitch
             {
                 get { return -GyroBlock.Pitch; }
-                set { GyroBlock.Pitch = -value; }
+                set 
+                {
+                    if (float.IsNaN(value)) value = 0;
+                    GyroBlock.Pitch = -value;
+                }
             }
             public float Yaw
             {
                 get { return -GyroBlock.Yaw; }
-                set { GyroBlock.Yaw = -value; }
+                set 
+                {
+                    if (float.IsNaN(value)) value = 0;
+                    GyroBlock.Yaw = -value;
+                }
             }
             public float Roll
             {
                 get { return -GyroBlock.Roll; }
-                set { GyroBlock.Roll = -value; }
+                set 
+                {
+                    if (float.IsNaN(value)) value = 0;
+                    GyroBlock.Roll = -value;
+                }
             }
 
             public Gyro(IMyGyro gyro)

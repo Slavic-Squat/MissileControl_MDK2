@@ -39,33 +39,34 @@ namespace IngameScript
 
             public Vector3D CalculateTotalAccel(Vector3D targetPos, Vector3D targetVel, Vector3D missilePos, Vector3D missileVel)
             {
-                double missileSpeed = missileVel.Length();
-                Vector3D missileVelDir = missileSpeed == 0 ? Vector3D.Zero : missileVel / missileSpeed;
                 Vector3D range = targetPos - missilePos;
                 double dist = range.Length();
-                Vector3D dirToTarget = dist == 0 ? Vector3D.Zero : range / dist;
-
+                Vector3D rangeUnit = dist != 0 ? range / dist : Vector3D.Zero;
                 Vector3D relVel = targetVel - missileVel;
-                Vector3D rotationVector = dist == 0 ? Vector3D.Zero : Vector3D.Cross(range, relVel) / (dist * dist);
+                double relSpeed = relVel.Length();
+                Vector3D relVelUnit = relSpeed != 0 ? relVel / relSpeed : Vector3D.Zero;
+                Vector3D axialVel = Vector3D.Dot(relVel, rangeUnit) * rangeUnit;
+                double axialSpeed = axialVel.Length();
+                Vector3D lateralVel = relVel - axialVel;
+                double lateralSpeed = lateralVel.Length();
+                Vector3D lateralVelUnit = lateralSpeed != 0 ? lateralVel / lateralSpeed : Vector3D.Zero;
+                double alignment = Vector3D.Dot(relVelUnit, rangeUnit);
 
-                double desiredRelAccelMag = MaxAccel;
-                Vector3D desiredRelAccel = dirToTarget * desiredRelAccelMag;
+                double axialSpeedFactor = Math.Max(axialSpeed, 1);
+                double distFactor = Math.Max(dist, 1);
+                double lateralSpeedFactor = lateralSpeed;
+                
+                Vector3D axialAccel = M * distFactor / axialSpeedFactor * (2 + alignment) * rangeUnit;
+                Vector3D lateralAccel = N * lateralSpeedFactor / distFactor * axialSpeedFactor * lateralVelUnit;
+                Vector3D totalAccel = axialAccel + lateralAccel;
+                double totalAccelMag = totalAccel.Length();
 
-                double alignment = Vector3D.Dot(missileVelDir, dirToTarget);
-                if (missileSpeed > 0.98 * MaxSpeed && alignment > 0.75)
+                if (totalAccelMag > MaxAccel)
                 {
-                    desiredRelAccel = Vector3D.Zero;
+                    totalAccel = totalAccel / totalAccelMag * MaxAccel;
                 }
 
-                Vector3D proNavAccel = M * desiredRelAccel - N * Vector3D.Cross(rotationVector, relVel) + Vector3D.Cross(rotationVector, Vector3D.Cross(rotationVector, range));
-                double proNavAccelMag = proNavAccel.Length();
-
-                if (proNavAccelMag > MaxAccel)
-                {
-                    proNavAccel = proNavAccel / proNavAccelMag * MaxAccel;
-                }
-
-                return proNavAccel;
+                return totalAccel;
             }
         }
     }

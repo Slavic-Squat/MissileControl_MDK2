@@ -33,6 +33,7 @@ namespace IngameScript
                 get { return _thrustOverride; }
                 set 
                 {
+                    if (value < 0 || float.IsNaN(value)) value = 0;
                     _thrustOverride = value;
                     float maxThrust = MaxThrust;
                     _thrusters.ForEach(t => t.ThrustOverride = (maxThrust == 0) ? 0 : value * (t.MaxThrust / maxThrust));
@@ -43,6 +44,7 @@ namespace IngameScript
                 get { return _thrustOverridePercentage; }
                 set 
                 {
+                    if (value < 0 || float.IsNaN(value)) value = 0;
                     _thrustOverridePercentage = value;
                     _thrusters.ForEach(t => t.ThrustOverridePercentage = value);
                 }

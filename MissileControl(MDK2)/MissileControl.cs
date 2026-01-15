@@ -234,7 +234,7 @@ namespace IngameScript
                 }
                 double globalTime = SystemCoordinator.GlobalTime;
 
-                if (Stage > MissileStage.Idle)
+                if (Stage > MissileStage.Active)
                 {
                     double timeDelta = time - Time;
 
@@ -249,46 +249,19 @@ namespace IngameScript
                     }
                     Vector3D range = estimatedTargetPos - missilePos;
                     double dist = range.Length();
-                    Vector3D relTargetDir = dist == 0 ? Vector3D.Zero : range / dist;
+                    Vector3D rangeUnit = dist == 0 ? Vector3D.Zero : range / dist;
                     Vector3D relVel = _target.Velocity - missileVel;
-                    double closingSpeed = -Vector3D.Dot(relTargetDir, relVel);
+                    double closingSpeed = -Vector3D.Dot(rangeUnit, relVel);
                     double timeToTarget = dist / closingSpeed;
 
                     Vector3D forwardVector = SystemCoordinator.ReferenceWorldMatrix.Forward;
-                    
+                    Vector3D gravVector = SystemCoordinator.ReferenceGravity;
+
                     Vector3D vectorToAlign;
                     Vector3D accelVector;
                     switch (Stage)
                     {
                         case MissileStage.Launching:
-                            Vector3D launchVector;
-                            double launchAccel = _thrusterGroups[_launchDirection].MaxThrust / _missileMass;
-                            switch (_launchDirection)
-                            {
-                                case Direction.Up:
-                                    launchVector = SystemCoordinator.ReferenceWorldMatrix.Up;
-                                    break;
-                                case Direction.Down:
-                                    launchVector = SystemCoordinator.ReferenceWorldMatrix.Down;
-                                    break;
-                                case Direction.Left:
-                                    launchVector = SystemCoordinator.ReferenceWorldMatrix.Left;
-                                    break;
-                                case Direction.Right:
-                                    launchVector = SystemCoordinator.ReferenceWorldMatrix.Right;
-                                    break;
-                                case Direction.Forward:
-                                    launchVector = SystemCoordinator.ReferenceWorldMatrix.Forward;
-                                    break;
-                                case Direction.Backward:
-                                    launchVector = SystemCoordinator.ReferenceWorldMatrix.Backward;
-                                    break;
-                                default:
-                                    launchVector = SystemCoordinator.ReferenceWorldMatrix.Forward;
-                                    break;
-                            }
-                            accelVector = launchVector * launchAccel;
-
                             if (time - _launchTime < _dismountPeriod)
                             {
                                 Vector3D dismountVector;
@@ -317,9 +290,46 @@ namespace IngameScript
                                         dismountVector = SystemCoordinator.ReferenceWorldMatrix.Up;
                                         break;
                                 }
-                                accelVector += dismountVector * dismountAccel;
+                                accelVector = dismountVector * dismountAccel;
+                            }
+                            else
+                            {
+                                Vector3D launchVector;
+                                double launchAccel = _thrusterGroups[_launchDirection].MaxThrust / _missileMass;
+                                switch (_launchDirection)
+                                {
+                                    case Direction.Up:
+                                        launchVector = SystemCoordinator.ReferenceWorldMatrix.Up;
+                                        break;
+                                    case Direction.Down:
+                                        launchVector = SystemCoordinator.ReferenceWorldMatrix.Down;
+                                        break;
+                                    case Direction.Left:
+                                        launchVector = SystemCoordinator.ReferenceWorldMatrix.Left;
+                                        break;
+                                    case Direction.Right:
+                                        launchVector = SystemCoordinator.ReferenceWorldMatrix.Right;
+                                        break;
+                                    case Direction.Forward:
+                                        launchVector = SystemCoordinator.ReferenceWorldMatrix.Forward;
+                                        break;
+                                    case Direction.Backward:
+                                        launchVector = SystemCoordinator.ReferenceWorldMatrix.Backward;
+                                        break;
+                                    default:
+                                        launchVector = SystemCoordinator.ReferenceWorldMatrix.Forward;
+                                        break;
+                                }
+                                accelVector = launchVector * launchAccel;
                             }
 
+                            if (gravVector.LengthSquared() > 0)
+                            {
+                                double accelMag = accelVector.Length();
+                                Vector3D accelUnit = accelMag != 0 ? accelVector / accelMag : Vector3D.Zero;
+                                Vector3D gravCompensation = -gravVector - Vector3D.Dot(-gravVector, accelUnit) * accelUnit;
+                                accelVector += gravCompensation;
+                            }
                             vectorToAlign = forwardVector;
 
                             if (time - _launchTime > _launchPeriod)
@@ -332,7 +342,14 @@ namespace IngameScript
                         case MissileStage.Flying:
 
                             accelVector = _missileGuidance.CalculateTotalAccel(estimatedTargetPos, _target.Velocity, missilePos, missileVel);
-                            vectorToAlign = relTargetDir;
+                            if (gravVector.LengthSquared() > 0)
+                            {
+                                double accelMag = accelVector.Length();
+                                Vector3D accelUnit = accelMag != 0 ? accelVector / accelMag : Vector3D.Zero;
+                                Vector3D gravCompensation = -gravVector - Vector3D.Dot(-gravVector, accelUnit) * accelUnit;
+                                accelVector += gravCompensation;
+                            }
+                            vectorToAlign = rangeUnit;
                             ClampAndAlign(vectorToAlign, ref accelVector, out vectorToAlign);
 
                             if (timeToTarget > 0 && timeToTarget < 10)
@@ -347,7 +364,14 @@ namespace IngameScript
                         case MissileStage.Interception:
 
                             accelVector = _missileGuidance.CalculateTotalAccel(estimatedTargetPos, _target.Velocity, missilePos, missileVel);
-                            vectorToAlign = relTargetDir;
+                            if (gravVector.LengthSquared() > 0)
+                            {
+                                double accelMag = accelVector.Length();
+                                Vector3D accelUnit = accelMag != 0 ? accelVector / accelMag : Vector3D.Zero;
+                                Vector3D gravCompensation = -gravVector - Vector3D.Dot(-gravVector, accelUnit) * accelUnit;
+                                accelVector += gravCompensation;
+                            }
+                            vectorToAlign = rangeUnit;
                             ClampAndAlign(vectorToAlign, ref accelVector, out vectorToAlign);
 
                             Vector3D targetDirCamera = Vector3D.TransformNormal(estimatedTargetPos - _proxySensor.GetPosition(), MatrixD.Transpose(_proxySensor.WorldMatrix)).Normalized();

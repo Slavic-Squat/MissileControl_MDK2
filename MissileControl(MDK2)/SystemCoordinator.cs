@@ -29,6 +29,7 @@ namespace IngameScript
             public static MatrixD ReferenceWorldMatrix => ReferenceController.WorldMatrix;
             public static Vector3D ReferencePosition => ReferenceController.GetPosition();
             public static Vector3D ReferenceVelocity => ReferenceController.GetShipVelocities().LinearVelocity;
+            public static Vector3D ReferenceGravity => ReferenceController.GetNaturalGravity();
             public static long SelfID => ReferenceController.CubeGrid.EntityId;
 
             public MissileControl MissileControl { get; private set; }
